@@ -1,6 +1,10 @@
+//Importaciones de dependencias
 import express from 'express';
 import cors from 'cors'
 import bodyParser from 'body-parser'
+
+//Importaciones de rutas
+import movimientosRoute from './src/routes/Movimientos.routes.js'
 import RouteTipoElemento from "./src/routes/TipoElemento.Router.jdcc.js";
 import RouteCategoeria from "./src/routes/Categoria.Router.jdcc.js";
 import RouteEmpaque from "./src/routes/Empaque.Router.jdcc.js";
@@ -27,8 +31,9 @@ app.use('/empaque', RouteEmpaque);
 app.use('/medida', RouteMedida);
 app.use('/ubicacion', RouteUbicacion);
 app.use('/elemento', RouteElemento);
+app.use('/movimientos', movimientosRoute);
 
 //Servidor
 app.listen(3000, ()=>{
-    console.log('El servidor se esta ejecutando en el purto 3000');
+    console.log('El servidor se esta ejecutando en el puerto 3000');
 })
