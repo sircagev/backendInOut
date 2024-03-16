@@ -1,20 +1,29 @@
-import express from 'express';
-import cors from 'cors'
-import bodyParser from 'body-parser'
+//Importaciones de Configuracion
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
 
-const app = express();
+//Importaciones de rutas
+import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
 
-//Configuración
+
+const app=express();
+
+//Configuracion
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
 //Rutas
-app.get('/',(req, res) => {
-    res.send('pagina Inicial')
+app.get('/',(req, res)=> {
+    console.log(process.env);
+    res.send('Pagina inicial');
 });
 
+app.use('/reporte', reportesRoute);
+
+
 //Servidor
-app.listen(3000, ()=>{
-    console.log('El servidor se esta ejecutando en el purto 3000');
-})
+app.listen(3000,()=>{
+    console.log("El servidor se esta ejecutando en el puerto 3000");
+});

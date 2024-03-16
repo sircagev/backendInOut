@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 16-03-2024 a las 15:22:13
+-- Tiempo de generación: 13-03-2024 a las 00:21:09
 -- Versión del servidor: 8.0.30
 -- Versión de PHP: 8.1.10
 
@@ -28,17 +28,17 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `bodega` (
-  `codigo_Bodega` int NOT NULL,
-  `ubicacion` varchar(50) NOT NULL,
-  `Nombre_bodega` varchar(50) NOT NULL,
-  `Estado` enum('Activo','Inactivo') DEFAULT 'Activo'
+  `codigo_bodega` int NOT NULL,
+  `ubicacion_bodega` varchar(50) NOT NULL,
+  `nombre_bodega` varchar(50) NOT NULL,
+  `estado` enum('Activo','Inactivo') DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `bodega`
 --
 
-INSERT INTO `bodega` (`codigo_Bodega`, `ubicacion`, `Nombre_bodega`, `Estado`) VALUES
+INSERT INTO `bodega` (`codigo_Bodega`, `ubicacion_bodega`, `nombre_bodega`, `estado`) VALUES
 (1, 'Calle 1, Ciudad X', 'Bodega Principal', 'Activo'),
 (2, 'Avenida 2, Ciudad Y', 'Almacén Secundario', 'Activo');
 
@@ -91,9 +91,7 @@ INSERT INTO `detalle_movimiento` (`codigo_detalle`, `fk_movimiento`, `fk_element
 (2, 2, 2, NULL, '2024-03-16', 5, 3, 2, ''),
 (3, 3, 3, 'Cancelada', NULL, 0, NULL, NULL, 'Cancelado por falta de stock'),
 (4, 4, 1, NULL, '2024-03-17', 3, 4, 5, 'Mas elementos'),
-(5, 5, 2, NULL, '2024-03-18', 8, 5, 1, 'Se despacharon correctamente los elementos'),
-(6, 7, 1, NULL, '2024-03-15', 5, 1, 2, 'Ninguna'),
-(7, 7, 2, NULL, '2024-03-15', 5, 1, 2, 'Ninguna');
+(5, 5, 2, NULL, '2024-03-18', 8, 5, 1, 'Se despacharon correctamente los elementos');
 
 -- --------------------------------------------------------
 
@@ -170,8 +168,7 @@ INSERT INTO `movimiento` (`Codigo_movimiento`, `fecha_movimiento`, `Usuario_soli
 (2, '2024-03-11', 2, 2, NULL),
 (3, '2024-03-12', 3, 3, 'Cancelada'),
 (4, '2024-03-13', 4, 1, NULL),
-(5, '2024-03-14', 5, 2, NULL),
-(7, NULL, 1, 1, NULL);
+(5, '2024-03-14', 5, 2, NULL);
 
 -- --------------------------------------------------------
 
@@ -285,27 +282,6 @@ INSERT INTO `usuario` (`id_usuario`, `nombre_usuario`, `apellido_usuario`, `emai
 (4, 'Ana', 'Lopez', 'ana@example.com', 'Usuario', '789123456', 'hashed_password_4', 4, 'Activo'),
 (5, 'Laura', 'Martinez', 'laura@example.com', 'Usuario', '321654987', 'hashed_password_5', 5, 'Activo');
 
--- --------------------------------------------------------
-
---
--- Estructura Stand-in para la vista `vista_stock`
--- (Véase abajo para la vista actual)
---
-CREATE TABLE `vista_stock` (
-`Codigo_elemento` int
-,`Nombre_elemento` varchar(50)
-,`stock` decimal(32,0)
-);
-
--- --------------------------------------------------------
-
---
--- Estructura para la vista `vista_stock`
---
-DROP TABLE IF EXISTS `vista_stock`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vista_stock`  AS SELECT `e`.`Codigo_elemento` AS `Codigo_elemento`, `e`.`Nombre_elemento` AS `Nombre_elemento`, coalesce(sum((case when (`m`.`fk_movimiento` = 1) then `dm`.`cantidad` when (`m`.`fk_movimiento` = 2) then -(`dm`.`cantidad`) when ((`m`.`fk_movimiento` = 3) and (`dm`.`estado` = 'En Prestamo')) then -(`dm`.`cantidad`) else 0 end)),0) AS `stock` FROM ((`elemento` `e` left join `detalle_movimiento` `dm` on((`e`.`Codigo_elemento` = `dm`.`fk_elemento`))) left join `movimiento` `m` on((`dm`.`fk_movimiento` = `m`.`Codigo_movimiento`))) GROUP BY `e`.`Codigo_elemento`, `e`.`Nombre_elemento` ;
-
 --
 -- Índices para tablas volcadas
 --
@@ -406,7 +382,7 @@ ALTER TABLE `categoria_elemento`
 -- AUTO_INCREMENT de la tabla `detalle_movimiento`
 --
 ALTER TABLE `detalle_movimiento`
-  MODIFY `codigo_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `codigo_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_ubicacion`
@@ -424,7 +400,7 @@ ALTER TABLE `elemento`
 -- AUTO_INCREMENT de la tabla `movimiento`
 --
 ALTER TABLE `movimiento`
-  MODIFY `Codigo_movimiento` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `Codigo_movimiento` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `tipo_elemento`
