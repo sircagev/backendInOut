@@ -2,7 +2,7 @@ import { pool } from '../database/conexion.js';
 
 export const RegistrarElemento = async (req, res) => {
     try {
-        let {Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion} = req.body;
+        let {Nombre_elemento, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion} = req.body;
         let sql = `insert into elemento (Nombre_elemento, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion) 
                    values (?, ?, ?, ?, ?, ?)`;
         let values = [Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion];
