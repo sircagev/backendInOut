@@ -11,7 +11,10 @@ import RouteEmpaque from "./src/routes/Empaque.Router.jdcc.js";
 import RouteMedida from "./src/routes/UnidadMedida.Router.jdcc.js";
 import RouteUbicacion from "./src/routes/Ubicacion.Router.jdcc.js"
 import RouteElemento from "./src/routes/Elemento.Router.jdcc.js";
+import RouteUsuario from "./src/routes/usuario.router.js";
+import RouteValidar from "./src/routes/validator.router.js";
 import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
+
 
 const app = express();
 
@@ -32,7 +35,10 @@ app.use('/medida', RouteMedida);
 app.use('/ubicacion', RouteUbicacion);
 app.use('/elemento', RouteElemento);
 app.use('/movimientos', movimientosRoute);
+app.use('/usuario', RouteUsuario);
+app.use('/validate', RouteValidar);
 app.use('/reporte', reportesRoute);
+
 
 //Servidor
 app.listen(3000, ()=>{
