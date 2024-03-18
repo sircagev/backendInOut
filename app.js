@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors'
 import bodyParser from 'body-parser'
+import routeBodega from "./src/routes/Bodegas.Router.jeph.js";
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.get('/',(req, res) => {
     res.send('pagina Inicial')
 });
+app.use('/bodega', routeBodega);
 
 //Servidor
 app.listen(3000, ()=>{
