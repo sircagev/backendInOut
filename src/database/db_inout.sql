@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Servidor: localhost
--- Tiempo de generación: 16-03-2024 a las 15:22:13
+-- Servidor: localhost:3306
+-- Tiempo de generación: 18-03-2024 a las 15:07:24
 -- Versión del servidor: 8.0.30
 -- Versión de PHP: 8.1.10
 
@@ -50,19 +50,20 @@ INSERT INTO `bodega` (`codigo_Bodega`, `ubicacion`, `Nombre_bodega`, `Estado`) V
 
 CREATE TABLE `categoria_elemento` (
   `codigo_Categoria` int NOT NULL,
-  `Nombre_Categoria` varchar(50) NOT NULL
+  `Nombre_Categoria` varchar(50) NOT NULL,
+  `estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `categoria_elemento`
 --
 
-INSERT INTO `categoria_elemento` (`codigo_Categoria`, `Nombre_Categoria`) VALUES
-(1, 'Informática'),
-(2, 'Mobiliario'),
-(3, 'Electrónica'),
-(4, 'Accesorios'),
-(5, 'Material de Oficina');
+INSERT INTO `categoria_elemento` (`codigo_Categoria`, `Nombre_Categoria`, `estado`) VALUES
+(1, 'Informática', 'Activo'),
+(2, 'Mobiliario', 'Activo'),
+(3, 'Electrónica', 'Activo'),
+(4, 'Accesorios', 'Activo'),
+(5, 'Material de Oficina', 'Activo');
 
 -- --------------------------------------------------------
 
@@ -141,7 +142,7 @@ CREATE TABLE `elemento` (
 --
 
 INSERT INTO `elemento` (`Codigo_elemento`, `Nombre_elemento`, `stock`, `fk_tipoElemento`, `fk_unidadMedida`, `fk_categoria`, `fk_tipoEmpaque`, `fk_detalleUbicacion`, `Estado`) VALUES
-(1, 'Computadora', 20, 1, 1, 1, 1, 1, 'Activo'),
+(1, 'Computadora', 20, 1, 1, 1, 1, 1, 'Inactivo'),
 (2, 'Impresora', 15, 2, 2, 2, 2, 2, 'Activo'),
 (3, 'Teléfono', 30, 1, 1, 1, 1, 3, 'Activo'),
 (4, 'Escritorio', 10, 2, 2, 2, 2, 4, 'Inactivo'),
@@ -200,19 +201,20 @@ INSERT INTO `tipo_elemento` (`codigo_Tipo`, `nombre_tipoElemento`) VALUES
 
 CREATE TABLE `tipo_empaque` (
   `codigo_Empaque` int NOT NULL,
-  `Nombre_Empaque` varchar(50) NOT NULL
+  `Nombre_Empaque` varchar(50) NOT NULL,
+  `estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `tipo_empaque`
 --
 
-INSERT INTO `tipo_empaque` (`codigo_Empaque`, `Nombre_Empaque`) VALUES
-(1, 'Caja'),
-(2, 'Bolsa'),
-(3, 'Paquete'),
-(4, 'Contenedor'),
-(5, 'Sobre');
+INSERT INTO `tipo_empaque` (`codigo_Empaque`, `Nombre_Empaque`, `estado`) VALUES
+(1, 'Hola', 'Inactivo'),
+(2, 'eifgasifgsd', 'Activo'),
+(3, 'Paquete', 'Activo'),
+(4, 'Contenedor', 'Activo'),
+(5, 'Lalalal', 'Activo');
 
 -- --------------------------------------------------------
 
@@ -242,19 +244,20 @@ INSERT INTO `tipo_movimiento` (`codigo_tipo`, `Nombre_movimiento`) VALUES
 
 CREATE TABLE `unidad_medida` (
   `codigo_medida` int NOT NULL,
-  `Nombre_Medida` varchar(50) NOT NULL
+  `Nombre_Medida` varchar(50) NOT NULL,
+  `estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `unidad_medida`
 --
 
-INSERT INTO `unidad_medida` (`codigo_medida`, `Nombre_Medida`) VALUES
-(1, 'Gramo'),
-(2, 'Kilogramo'),
-(3, 'Metro Cubico'),
-(4, 'Centimetro Cubico'),
-(5, 'Litro');
+INSERT INTO `unidad_medida` (`codigo_medida`, `Nombre_Medida`, `estado`) VALUES
+(1, 'Gramo', 'Activo'),
+(2, 'Kilogramo', 'Activo'),
+(3, 'Metro Cubico', 'Activo'),
+(4, 'Centimetro Cubico', 'Activo'),
+(5, 'Litro', 'Activo');
 
 -- --------------------------------------------------------
 
@@ -271,7 +274,7 @@ CREATE TABLE `usuario` (
   `numero` varchar(20) DEFAULT NULL,
   `contraseña_usuario` varchar(255) DEFAULT NULL,
   `Id_ficha` int DEFAULT NULL,
-  `Estado` enum('Activo','Inactivo') DEFAULT NULL
+  `Estado` enum('Activo','Inactivo') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -283,7 +286,8 @@ INSERT INTO `usuario` (`id_usuario`, `nombre_usuario`, `apellido_usuario`, `emai
 (2, 'Maria', 'Gomez', 'maria@example.com', 'Encargado', '987654321', 'hashed_password_2', 2, 'Activo'),
 (3, 'Pedro', 'Rodriguez', 'pedro@example.com', 'Usuario', '456789123', 'hashed_password_3', 3, 'Inactivo'),
 (4, 'Ana', 'Lopez', 'ana@example.com', 'Usuario', '789123456', 'hashed_password_4', 4, 'Activo'),
-(5, 'Laura', 'Martinez', 'laura@example.com', 'Usuario', '321654987', 'hashed_password_5', 5, 'Activo');
+(5, 'Laura', 'Martinez', 'laura@example.com', 'Usuario', '321654987', 'hashed_password_5', 5, 'Activo'),
+(6, 'Cristian', 'Giron', 'cf.giron04@gmail.com', 'administrador', '3123028342', '123admin', 2644590, 'Activo');
 
 -- --------------------------------------------------------
 
@@ -454,7 +458,7 @@ ALTER TABLE `unidad_medida`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Restricciones para tablas volcadas
