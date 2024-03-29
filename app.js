@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors'
 import bodyParser from 'body-parser'
+import routeBodega from "./src/routes/Bodegas.Router.jeph.js";
 
 //Importaciones de rutas
 import movimientosRoute from './src/routes/Movimientos.routes.js'
@@ -27,6 +28,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.get('/',(req, res) => {
     res.send('pagina Inicial')
 });
+app.use('/bodega', routeBodega);
 
 app.use('/tipo', RouteTipoElemento);
 app.use('/categoria', RouteCategoeria);
