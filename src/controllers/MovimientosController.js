@@ -5,18 +5,18 @@ export const ListarTodosMovimientos = async (req, res) => {
     try {
         //Consulta trayendo la información completa de los movimientos
         const sql = `SELECT 
-                        Codigo_movimiento AS "Código",
-                        fecha_movimiento AS "Fecha",
-                        CONCAT(nombre_usuario,' ',apellido_usuario) AS "Usuario",
-                        Nombre_movimiento AS "Tipo Movimiento" 
-                    FROM detalle_movimiento AS dm 
-                    JOIN movimiento AS m ON dm.fk_movimiento = m.Codigo_movimiento
-                    JOIN tipo_movimiento AS tm ON m.fk_movimiento = codigo_tipo
-                    JOIN usuario AS u ON m.Usuario_solicitud = id_usuario`;
+                        m.Codigo_movimiento AS "Codigo",
+                        m.fecha_movimiento AS "Fecha",
+                        CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
+                        tm.Nombre_movimiento AS "Tipo" 
+                    FROM movimiento AS m 
+                    JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+                    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
+                    ORDER BY Codigo ASC`;
 
         //Ejecutar la consulta
         const [result] = await pool.query(sql);
-
+        console.log(result)
         //Revisar que llego información y ejecutar manejo de errores
         if (result.length > 0) {
             return res.status(200).json({ message: "Movimientos listados", datos: result });
@@ -26,6 +26,23 @@ export const ListarTodosMovimientos = async (req, res) => {
     } catch (error) {
         //Enviar error por servidor
         return res.status(500).json({ message: error });
+    }
+}
+
+export const ListarDetallesMovimiento = async (req, res) => {
+    try {
+        //Consulta trayendo la información completa de los movimientos
+        const sql = `SELECT 
+                        dm.codigo_detalle AS "Codigo",
+                        e.Nombre_elemento AS "Elemento",
+                        dm.estado AS "Estado"
+                        dm.fecha_vencimiento AS "Fecha"
+                        dm.cantidad AS "Cantidad"
+                        u.Usuario_recibe AS "Recibe"
+                        u.Usuario_entrega AS "Entrega"
+                    `;
+    } catch (error) {
+        
     }
 }
 
