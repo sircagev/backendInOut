@@ -32,7 +32,7 @@ export const ListarTodosMovimientos = async (req, res) => {
 export const BuscarMovimiento = async (req, res) => {
     try {
         let {id} = req.params;
-        console.log(id);
+
         let sql = `SELECT 
                         m.Codigo_movimiento AS "Codigo",
                         m.fecha_movimiento AS "Fecha",
@@ -41,14 +41,14 @@ export const BuscarMovimiento = async (req, res) => {
                     FROM movimiento AS m 
                     JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
                     JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-                    WHERE m.Codigo_movimiento =?;
-                    ORDER BY Fecha DESC`;
+                    WHERE m.Codigo_movimiento =?
+                    ORDER BY Fecha DESC;`;
         let [rows] = await pool.query(sql, [id]);
 
         if (rows.length > 0) {
-            return res.status(200).json({ "message": "Elemento encontrado con éxito", "Elemento": rows });
+            return res.status(200).json({ "message": "Movimiento encontrado con éxito", "Movimiento": rows });
         } else {
-            return res.status(404).json({ "message": "Elemento no encontrado" });
+            return res.status(404).json({ "message": "Movimiento no encontrado" });
         }
     } catch (error) {
 
@@ -57,6 +57,7 @@ export const BuscarMovimiento = async (req, res) => {
 
 export const ListarDetallesMovimiento = async (req, res) => {
     try {
+        let {id} = req.params;
         //Consulta trayendo la información completa de los movimientos
         const sql = `SELECT 
                         dm.codigo_detalle AS "Codigo",
@@ -71,10 +72,11 @@ export const ListarDetallesMovimiento = async (req, res) => {
                     JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
                     JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
                     JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
+                    WHERE dm.fk_movimiento = ?
                     ORDER BY Codigo ASC;
                     `;
         //Ejecutar la consulta
-        const [result] = await pool.query(sql);
+        const [result] = await pool.query(sql, [id]);
         console.log(result)
         //Revisar que llego información y ejecutar manejo de errores
         if (result.length > 0) {
