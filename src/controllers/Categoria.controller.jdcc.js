@@ -24,7 +24,7 @@ export const ListarCategoria = async (req, res) => {
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(400).json({"message": "No hay tipos de categorias de elementos registrados."});
+            return res.status(404).json([]);
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -35,12 +35,13 @@ export const ListarCategoria = async (req, res) => {
 export const BuscarCategoria = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from categoria_elemento where codigo_Categoria = ?`;
+        let id2 = id + '%';
+        let sql = `select * from categoria_elemento where Nombre_Categoria like ?`;
 
-        let [result] = await pool.query(sql, id);
+        let [rows] = await pool.query(sql, id2);
 
-        if(result.length > 0) {
-            return res.status(200).json(result);
+        if(rows.length > 0) {
+            return res.status(200).json({"message": "Categría econtrada", "categoria": rows});
         } else {
             return res.status(400).json({"message": "Categoria elemento no encontrado"});
         }

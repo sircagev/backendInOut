@@ -23,7 +23,7 @@ export const RegistrarBodega = async (req, res) => {
 export const listarBodegas = async(req,res)=> {
 
     try{
-        const [result] = await pool.query('select * from bodegas');
+        const [result] = await pool.query('select * from bodega');
         
         if(result.length>0){
             return res.status(200).json(result); 
