@@ -29,20 +29,61 @@ export const ListarTodosMovimientos = async (req, res) => {
     }
 }
 
+export const BuscarMovimiento = async (req, res) => {
+    try {
+        let {id} = req.params;
+        console.log(id);
+        let sql = `SELECT 
+                        m.Codigo_movimiento AS "Codigo",
+                        m.fecha_movimiento AS "Fecha",
+                        CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
+                        tm.Nombre_movimiento AS "Tipo" 
+                    FROM movimiento AS m 
+                    JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+                    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
+                    WHERE m.Codigo_movimiento =?;
+                    ORDER BY Fecha DESC`;
+        let [rows] = await pool.query(sql, [id]);
+
+        if (rows.length > 0) {
+            return res.status(200).json({ "message": "Elemento encontrado con éxito", "Elemento": rows });
+        } else {
+            return res.status(404).json({ "message": "Elemento no encontrado" });
+        }
+    } catch (error) {
+
+    }
+}
+
 export const ListarDetallesMovimiento = async (req, res) => {
     try {
         //Consulta trayendo la información completa de los movimientos
         const sql = `SELECT 
                         dm.codigo_detalle AS "Codigo",
                         e.Nombre_elemento AS "Elemento",
-                        dm.estado AS "Estado"
-                        dm.fecha_vencimiento AS "Fecha"
-                        dm.cantidad AS "Cantidad"
-                        u.Usuario_recibe AS "Recibe"
-                        u.Usuario_entrega AS "Entrega"
+                        dm.estado AS "Estado",
+                        dm.fecha_vencimiento AS "Fecha",
+                        dm.cantidad AS "Cantidad",
+                        CONCAT(ur.nombre_usuario,' ',ur.apellido_usuario) AS "Recibe",
+                        CONCAT(ue.nombre_usuario,' ',ue.apellido_usuario) AS "Entrega",
+                        dm.Observaciones AS "Observaciones"
+                    FROM detalle_movimiento AS dm
+                    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
+                    JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
+                    JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
+                    ORDER BY Codigo ASC;
                     `;
+        //Ejecutar la consulta
+        const [result] = await pool.query(sql);
+        console.log(result)
+        //Revisar que llego información y ejecutar manejo de errores
+        if (result.length > 0) {
+            return res.status(200).json({ message: "Movimientos listados", datos: result });
+        } else {
+            return res.status(404).json({ message: "No se encontraron movimientos" });
+        }
     } catch (error) {
-        
+
     }
 }
 
