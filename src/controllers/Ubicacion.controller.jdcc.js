@@ -19,12 +19,17 @@ export const RegistrarUbicacion = async (req, res) => {
 
 export const ListarUbicacion = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM detalle_ubicacion WHERE estado = 'activo'`);
+        let [result] = await pool.query(`SELECT e.*, c.Nombre_bodega FROM detalle_ubicacion 
+                                        AS e
+                                        JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega 
+                                        WHERE e.estado = 'activo'
+                                        ORDER BY e.codigo_Detalle ASC 
+                                        `);
 
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(400).json({"message": "No hay detalles de ubicación registrados."});
+            return res.status(404).json([]);
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -35,12 +40,18 @@ export const ListarUbicacion = async (req, res) => {
 export const BuscarUbicacion = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from detalle_ubicacion where codigo_Detalle = ?`;
+        let id2 = id + '%';
+        let sql = `select e.*, c.Nombre_bodega from detalle_ubicacion 
+                   AS e 
+                   JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega
+                   WHERE e.estado = 'activo'
+                   AND Nombre_ubicacion like ?
+                   ORDER BY e.codigo_Detalle ASC`;
 
-        let [result] = await pool.query(sql, id);
+        let [rows] = await pool.query(sql, id2);
 
-        if(result.length > 0) {
-            return res.status(200).json(result);
+        if(rows.length > 0) {
+            return res.status(200).json({"message": "Encontrado", "Ubicacion": rows});
         } else {
             return res.status(400).json({"message": "Detalle de ubicacion no encontrada"});
         }

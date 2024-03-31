@@ -24,7 +24,7 @@ export const ListarMedida = async (req, res) => {
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(400).json({"message": "No hay tipos de unidades de medida registrados."});
+            return res.status(200).json([]);
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -35,12 +35,13 @@ export const ListarMedida = async (req, res) => {
 export const Buscarmedida = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from unidad_medida where codigo_medida = ?`;
+        let id2 = id + '%';
+        let sql = `select * from unidad_medida where estado = 'activo' and Nombre_Medida like ?`;
 
-        let [result] = await pool.query(sql, id);
+        let [rows] = await pool.query(sql, id2);
 
-        if(result.length > 0) {
-            return res.status(200).json(result);
+        if(rows.length > 0) {
+            return res.status(200).json({"message": "Medida encontrada con éxito", "medida": rows});
         } else {
             return res.status(400).json({"message": "Unidad de medida no encontrada"});
         }

@@ -24,7 +24,7 @@ export const ListarEmpaque = async (req, res) => {
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(400).json({"message": "No hay tipos de tipo de empaques registrados."});
+            return res.status(404).json([]);
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -35,12 +35,13 @@ export const ListarEmpaque = async (req, res) => {
 export const BuscarEmpaque = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from tipo_empaque where codigo_Empaque = ?`;
+        let id2 = id + '%';
+        let sql = `select * from tipo_empaque where Nombre_Empaque like ?`;
 
-        let [result] = await pool.query(sql, id);
+        let [rows] = await pool.query(sql, id2);
 
-        if(result.length > 0) {
-            return res.status(200).json(result);
+        if(rows.length > 0) {
+            return res.status(200).json({"message": "Empaque econtrado", "Empaque": rows});
         } else {
             return res.status(400).json({"message": "Tipo Empaque no encontrado"});
         }
@@ -87,15 +88,16 @@ export const DesactivarEmpaque = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE tipo_empaque SET estado = 'inactivo' WHERE codigo_Empaque = ?`;
+        const sqlUpdate = `UPDATE tipo_empaque SET estado = 'inactivo' WHERE codigo_Empaque = ?`;
+        const sqlSelect = `SELECT * FROM tipo_empaque WHERE estado = 'activo'`;
 
-        const [result] = await pool.query(sql, [id]);
+        // Desactivar el empaque
+        await pool.query(sqlUpdate, [id]);
 
-        if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Tipo Empaque desactivado con éxito." });
-        } else {
-            return res.status(404).json({ "message": "Tipo Empaque no desactivado." });
-        }
+        // Obtener los empaques activos restantes
+        const [result] = await pool.query(sqlSelect);
+
+        return res.status(200).json(result);
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
