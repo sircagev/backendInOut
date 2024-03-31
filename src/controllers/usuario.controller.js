@@ -1,8 +1,13 @@
 import {pool} from '../database/conexion.js';
+import { validationResult } from 'express-validator';
 
 export const registrarUsuario = async(req, res)=>{
     try{
         let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha}= req.body;
+
+        const errors = validationResult(req);
+        if(!errors.isEmpty())return res.status(400).json(errors) 
+
         let sql = `insert into usuario (nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha)
                     values('${nombre_usuario}','${apellido_usuario}','${email_usuario}','${rol}','${numero}','${contraseña_usuario}','${Id_ficha}')`
 
@@ -55,7 +60,7 @@ export const BuscarUsuario = async(req, res) => {
     let[rows]= await pool.query(sql, [id_usuario]);
 
     if(rows.length){
-        return res.status(200).json({'Datos Usuario': rows[0]});
+        return res.status(200).json({'Datos': rows});
     }
     else{
        return res.status(403).json({'message': 'Usuarios No encontrado'});            
