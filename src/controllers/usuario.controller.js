@@ -30,7 +30,7 @@ export const ListarUsuario = async(req, res) =>{
     let[result] = await pool.query('select *from usuario')
 
     if(result.length>0){
-        return res.status(200).json({result});
+        return res.status(200).json(result);
     }
     else{
        return res.status(403).json({'message': 'No existen Usuarios Registrados'});            
