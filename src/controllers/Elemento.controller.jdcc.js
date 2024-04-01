@@ -4,7 +4,7 @@ export const RegistrarElemento = async (req, res) => {
     try {
         let {Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion} = req.body;
         let sql = `insert into elemento (Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion) 
-                   values (?, ?, ?, ?, ?, ?, ?)`;
+                   values (?, ?, ?, ?, ?,?, ?)`;
         let values = [Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion];
 
         let [result] = await pool.query(sql, values);
