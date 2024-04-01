@@ -55,8 +55,7 @@ export const ListarElemetos = async (req, res) => {
                 JOIN unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
                 JOIN tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
                 JOIN detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle
-                WHERE e.Estado = 'Activo'
-                ORDER BY e.codigo_elemento ASC`);
+                ORDER BY CASE WHEN e.estado = 'activo' THEN 1 ELSE 2 END, e.codigo_elemento ASC`);
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
@@ -78,7 +77,6 @@ export const BuscarElemento = async (req, res) => {
                 JOIN unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
                 JOIN tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
                 JOIN detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle
-                WHERE e.Estado = 'Activo'
                 AND e.Nombre_elemento like ?
                 ORDER BY e.codigo_elemento ASC `;
         let [rows] = await pool.query(sql, [id2]);   
