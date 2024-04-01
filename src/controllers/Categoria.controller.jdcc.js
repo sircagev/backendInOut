@@ -19,7 +19,7 @@ export const RegistrarCategoria = async (req, res) => {
 
 export const ListarCategoria = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM categoria_elemento WHERE estado = 'activo'`);
+        let [result] = await pool.query(`SELECT * FROM categoria_elemento ORDER BY estado = 'activo' DESC`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -88,14 +88,33 @@ export const DesactivarCategoria = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE categoria_elemento SET estado = 'inactivo' WHERE codigo_Categoria = ?`;
+        // Consulta SQL para obtener el estado actual de la categoría
+        const sqlGetEstado = `SELECT estado FROM categoria_elemento WHERE codigo_Categoria = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la categoría
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Categoría Elemento no encontrada." });
+        }
+
+        const estadoActual = estadoResult[0].estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE categoria_elemento SET estado = ? WHERE codigo_Categoria = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Categoria Elemento desactivado con éxito." });
+            return res.status(200).json({ message: `Categoría Elemento actualizada a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Categoria Elemento no desactivado." });
+            return res.status(404).json({ "message": "Categoría Elemento no actualizada." });
         }
 
     } catch (error) {

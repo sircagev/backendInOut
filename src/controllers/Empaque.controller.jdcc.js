@@ -19,7 +19,7 @@ export const RegistrarEmpaque = async (req, res) => {
 
 export const ListarEmpaque = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM tipo_empaque WHERE estado = 'activo'`);
+        let [result] = await pool.query(`SELECT * FROM tipo_empaque ORDER BY estado = 'activo' DESC`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -88,14 +88,32 @@ export const DesactivarEmpaque = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sqlUpdate = `UPDATE tipo_empaque SET estado = 'inactivo' WHERE codigo_Empaque = ?`;
-        const sqlSelect = `SELECT * FROM tipo_empaque WHERE estado = 'activo'`;
+        // Consulta SQL para obtener el estado actual del empaque
+        const sqlGetEstado = `SELECT estado FROM tipo_empaque WHERE codigo_Empaque = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        // Desactivar el empaque
-        await pool.query(sqlUpdate, [id]);
+        // Verificar si se encontró el empaque
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Tipo de Empaque no encontrado." });
+        }
 
-        // Obtener los empaques activos restantes
-        const [result] = await pool.query(sqlSelect);
+        const estadoActual = estadoResult[0].estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE tipo_empaque SET estado = ? WHERE codigo_Empaque = ?`;
+        await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
+
+        // Consulta SQL para obtener los empaques activos restantes
+        const sqlSelectActivos = `SELECT * FROM tipo_empaque WHERE estado = 'activo'`;
+        const [result] = await pool.query(sqlSelectActivos);
 
         return res.status(200).json(result);
 
@@ -103,3 +121,4 @@ export const DesactivarEmpaque = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+

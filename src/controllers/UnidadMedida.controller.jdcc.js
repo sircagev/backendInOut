@@ -19,7 +19,7 @@ export const RegistrarMedida = async (req, res) => {
 
 export const ListarMedida = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM unidad_medida WHERE estado = 'activo'`);
+        let [result] = await pool.query(`SELECT * FROM unidad_medida ORDER BY estado = 'activo' DESC`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -36,7 +36,7 @@ export const Buscarmedida = async (req, res) => {
     try {
         let id = req.params.id;
         let id2 = id + '%';
-        let sql = `select * from unidad_medida where estado = 'activo' and Nombre_Medida like ?`;
+        let sql = `select * from unidad_medida where  Nombre_Medida like ?`;
 
         let [rows] = await pool.query(sql, id2);
 
@@ -88,17 +88,37 @@ export const DesactivarMedida = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE unidad_medida SET estado = 'inactivo' WHERE codigo_medida= ?`;
+        // Consulta SQL para obtener el estado actual de la unidad de medida
+        const sqlGetEstado = `SELECT estado FROM unidad_medida WHERE codigo_medida = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la unidad de medida
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Unidad de medida no encontrada." });
+        }
+
+        const estadoActual = estadoResult[0].estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE unidad_medida SET estado = ? WHERE codigo_medida = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Unidad de medida desactivada con éxito." });
+            return res.status(200).json({ message: `Unidad de medida actualizada a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Unidad de medida no desactivada." });
+            return res.status(404).json({ "message": "Unidad de medida no actualizada." });
         }
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
+
