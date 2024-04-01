@@ -19,12 +19,12 @@ export const RegistrarUbicacion = async (req, res) => {
 
 export const ListarUbicacion = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT e.*, c.Nombre_bodega FROM detalle_ubicacion 
-                                        AS e
-                                        JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega 
-                                        WHERE e.estado = 'activo'
-                                        ORDER BY e.codigo_Detalle ASC 
-                                        `);
+        let [result] = await pool.query(`
+            SELECT e.*, c.Nombre_bodega 
+            FROM detalle_ubicacion AS e
+            JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega 
+            ORDER BY CASE WHEN e.estado = 'activo' THEN 1 ELSE 2 END, e.codigo_Detalle ASC
+        `);
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -44,7 +44,6 @@ export const BuscarUbicacion = async (req, res) => {
         let sql = `select e.*, c.Nombre_bodega from detalle_ubicacion 
                    AS e 
                    JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega
-                   WHERE e.estado = 'activo'
                    AND Nombre_ubicacion like ?
                    ORDER BY e.codigo_Detalle ASC`;
 
@@ -98,14 +97,36 @@ export const Desactivarubicacion = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE detalle_ubicacion SET estado = 'inactivo' WHERE codigo_Detalle = ?`;
+        // Consulta SQL para obtener el estado actual de la ubicación
+        const sqlGetEstado = `SELECT estado FROM detalle_ubicacion WHERE codigo_Detalle = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la ubicación
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Detalle de ubicación no encontrado." });
+        }
+
+        const estadoActual = estadoResult[0].estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
+        } else {
+            // En caso de un estado no esperado, mantener el estado actual
+            nuevoEstado = estadoActual;
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE detalle_ubicacion SET estado = ? WHERE codigo_Detalle = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Detalle de ubicación desactivado con éxito." });
+            return res.status(200).json({ message: `Detalle de ubicación actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Detalle de ubicación no desactivado." });
+            return res.status(404).json({ "message": "Detalle de ubicación no actualizado." });
         }
 
     } catch (error) {
