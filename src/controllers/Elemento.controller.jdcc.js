@@ -15,7 +15,7 @@ export const RegistrarElemento = async (req, res) => {
             return res.status(400).json({ "message": "Elemento no registrado." });
         }
     } catch (error) {
-        return res.status(500).json(error);
+        return res.status(500).json(error.message);
     }
 }
 

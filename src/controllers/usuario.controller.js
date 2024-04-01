@@ -58,6 +58,7 @@ export const BuscarUsuario = async(req, res) => {
     let sql = `select * from usuario where id_usuario = ${id_usuario}`;
 
     let[rows]= await pool.query(sql, [id_usuario]);
+    console.log(rows);
 
     if(rows.length){
         return res.status(200).json({'Datos': rows});
