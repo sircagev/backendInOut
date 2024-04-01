@@ -31,7 +31,7 @@ export const ListarTodosMovimientos = async (req, res) => {
 
 export const BuscarMovimiento = async (req, res) => {
     try {
-        let {id} = req.params;
+        let { id } = req.params;
 
         let sql = `SELECT 
                         m.Codigo_movimiento AS "Codigo",
@@ -57,7 +57,7 @@ export const BuscarMovimiento = async (req, res) => {
 
 export const ListarDetallesMovimiento = async (req, res) => {
     try {
-        let {id} = req.params;
+        let { id } = req.params;
         //Consulta trayendo la información completa de los movimientos
         const sql = `SELECT 
                         dm.codigo_detalle AS "Codigo",
@@ -129,3 +129,55 @@ export const RegistrarMovimientoPrestamo = async (req, res) => {
         return res.status(500).json({ message: error });
     }
 }
+
+export const RegistrarMovimientoIngreso = async (req,res ) => {
+    try {
+        let { usuario_solicitud, fk_movimiento, Estado, detalles } = req.body;
+        //Iniciar un transaccion en Sql
+        await pool.query("START TRANSACTION");
+
+        //Crear un Nuevo Movimiento de tipo Prestamo
+        const sqlMovimientoIngreso = `INSERT INTO movimiento (usuario_solicitud, fk_movimiento, Estado) 
+                                    VALUES (?,?,?)`;
+        const valuesMovimientoIngreso = [usuario_solicitud, fk_movimiento, Estado]
+        let [rowsMovimientoIngreso] = await pool.query(sqlMovimientoIngreso, valuesMovimientoIngreso);
+
+        //Obtener ID del movimiento recién creado
+        const movimientoID = rowsMovimientoIngreso.insertId;
+        const detallesInfo = [];
+
+        for (const detalle of detalles) {
+            //Traer informacion de los detalles
+            const { fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones } = detalle;
+           
+            //Insertar de a un detalle
+            const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones) 
+                                VALUES (?,?,?,?,?,?,?,?)`;
+            const detalleValues = [movimientoID, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones];
+            let [detalleRows] = await pool.query(detalleSql, detalleValues);
+
+            detallesInfo.push(detalleRows);
+
+            const elementoSql = `SELECT stock FROM elemento WHERE Codigo_Elemento = ?;`;
+            const elementoValues = [fk_elemento];
+            const [elementoRows] = await pool.query(elementoSql, elementoValues);
+
+
+            if (elementoRows.length > 0) {
+                const stockNuevo = parseInt(elementoRows[0].stock) + parseInt(cantidad);
+                
+                const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
+                const stockValues = [stockNuevo, fk_elemento];
+                const [responseStock] = await pool.query(stockSql, stockValues);
+                console.log(responseStock);
+            }
+        };
+
+        await pool.query("COMMIT");
+        return res.status(200).json({ message: "Registro Exitoso", movimiento: rowsMovimientoIngreso, detalles: detalles });
+    } catch (error) {
+        await pool.query("ROLLBACK");
+        //Enviar error por servidor
+        return res.status(500).json({ message: error });
+    }
+};

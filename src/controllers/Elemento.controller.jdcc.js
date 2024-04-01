@@ -2,29 +2,10 @@ import { pool } from '../database/conexion.js';
 
 export const RegistrarElemento = async (req, res) => {
     try {
-        let { Nombre_elemento, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
-        
-        // Modificar la consulta SQL para permitir valores nulos en los campos opcionales
-        let sql = `INSERT INTO elemento (Nombre_elemento, fk_tipoElemento, fk_detalleUbicacion) 
-                   VALUES (?, ?, ?)`;
-        let values = [Nombre_elemento, fk_tipoElemento, fk_detalleUbicacion];
-
-        // Si los campos opcionales tienen valores, agregarlos a la consulta y los valores
-        if (fk_unidadMedida) {
-            sql = `INSERT INTO elemento (Nombre_elemento, fk_tipoElemento, fk_unidadMedida, fk_detalleUbicacion) 
-                   VALUES (?, ?, ?, ?)`;
-            values.splice(2, 0, fk_unidadMedida);
-        }
-        if (fk_categoria) {
-            sql = `INSERT INTO elemento (Nombre_elemento, fk_tipoElemento, fk_categoria, fk_detalleUbicacion) 
-                   VALUES (?, ?, ?, ?)`;
-            values.splice(2, 0, fk_categoria);
-        }
-        if (fk_tipoEmpaque) {
-            sql = `INSERT INTO elemento (Nombre_elemento, fk_tipoElemento, fk_tipoEmpaque, fk_detalleUbicacion) 
-                   VALUES (?, ?, ?, ?)`;
-            values.splice(2, 0, fk_tipoEmpaque);
-        }
+        let {Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion} = req.body;
+        let sql = `insert into elemento (Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion) 
+                   values (?, ?, ?, ?, ?, ?, ?)`;
+        let values = [Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion];
 
         let [result] = await pool.query(sql, values);
         
@@ -34,7 +15,7 @@ export const RegistrarElemento = async (req, res) => {
             return res.status(400).json({ "message": "Elemento no registrado." });
         }
     } catch (error) {
-        return res.status(500).json(error);
+        return res.status(500).json(error.message);
     }
 }
 
