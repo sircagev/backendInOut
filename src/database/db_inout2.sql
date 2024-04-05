@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost:3306
--- Tiempo de generación: 18-03-2024 a las 15:07:24
+-- Tiempo de generación: 05-04-2024 a las 12:32:55
 -- Versión del servidor: 8.0.30
 -- Versión de PHP: 8.1.10
 
@@ -94,7 +94,35 @@ INSERT INTO `detalle_movimiento` (`codigo_detalle`, `fk_movimiento`, `fk_element
 (4, 4, 1, NULL, '2024-03-17', 3, 4, 5, 'Mas elementos'),
 (5, 5, 2, NULL, '2024-03-18', 8, 5, 1, 'Se despacharon correctamente los elementos'),
 (6, 7, 1, NULL, '2024-03-15', 5, 1, 2, 'Ninguna'),
-(7, 7, 2, NULL, '2024-03-15', 5, 1, 2, 'Ninguna');
+(7, 7, 2, NULL, '2024-03-15', 5, 1, 2, 'Ninguna'),
+(8, 8, 2, NULL, NULL, 1, 1, 2, NULL),
+(9, 9, 4, NULL, NULL, 0, 1, 3, NULL),
+(10, 10, 4, NULL, NULL, 4, 1, 3, NULL),
+(11, 11, 4, NULL, NULL, 3, 1, 6, NULL),
+(12, 12, 3, NULL, NULL, 1, 1, 3, NULL),
+(13, 13, 2, NULL, NULL, 3, 1, 4, NULL),
+(14, 14, 2, NULL, NULL, 3, 1, 4, NULL),
+(15, 17, 3, NULL, NULL, 8, 1, 4, NULL),
+(16, 18, 5, NULL, NULL, 78, 1, 6, NULL),
+(17, 19, 5, NULL, NULL, 7, 1, 2, NULL),
+(18, 20, 4, NULL, NULL, 18, 1, 2, NULL),
+(19, 21, 3, NULL, NULL, 1, 1, 5, NULL),
+(20, 22, 3, NULL, NULL, 2, 1, 2, NULL),
+(21, 23, 3, NULL, NULL, 0, 1, 4, NULL),
+(22, 24, 2, NULL, NULL, 1, 1, 2, NULL),
+(23, 25, 4, NULL, NULL, 1, 1, 3, NULL),
+(24, 26, 2, NULL, NULL, 2, 1, 2, NULL),
+(25, 27, 4, NULL, NULL, 2, 1, 2, NULL),
+(26, 28, 2, NULL, NULL, 2, 1, 2, NULL),
+(27, 29, 5, NULL, NULL, 2, 1, 3, NULL),
+(28, 30, 1, NULL, NULL, 2, 1, 3, NULL),
+(29, 31, 4, NULL, NULL, 2, 1, 3, NULL),
+(30, 32, 1, NULL, NULL, 5, 1, 2, NULL),
+(31, 33, 1, NULL, NULL, 10, 1, 1, NULL),
+(32, 34, 1, NULL, NULL, 5, 1, 2, NULL),
+(33, 35, 1, NULL, NULL, 5, 1, 2, NULL),
+(34, 36, 1, NULL, NULL, 5, 1, 4, NULL),
+(35, 37, 1, NULL, NULL, 2, 1, 3, NULL);
 
 -- --------------------------------------------------------
 
@@ -105,19 +133,20 @@ INSERT INTO `detalle_movimiento` (`codigo_detalle`, `fk_movimiento`, `fk_element
 CREATE TABLE `detalle_ubicacion` (
   `codigo_Detalle` int NOT NULL,
   `Nombre_ubicacion` varchar(50) NOT NULL,
-  `fk_bodega` int DEFAULT NULL
+  `fk_bodega` int DEFAULT NULL,
+  `estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `detalle_ubicacion`
 --
 
-INSERT INTO `detalle_ubicacion` (`codigo_Detalle`, `Nombre_ubicacion`, `fk_bodega`) VALUES
-(1, 'Estantería A', 1),
-(2, 'Almacén B', 2),
-(3, 'Oficina Principal', 1),
-(4, 'Almacén C', 2),
-(5, 'Estantería B', 1);
+INSERT INTO `detalle_ubicacion` (`codigo_Detalle`, `Nombre_ubicacion`, `fk_bodega`, `estado`) VALUES
+(1, 'Estantería A', 1, 'Activo'),
+(2, 'Almacén B', 2, 'Activo'),
+(3, 'Oficina Principal', 1, 'Activo'),
+(4, 'Almacén C', 2, 'Activo'),
+(5, 'Estantería B', 1, 'Activo');
 
 -- --------------------------------------------------------
 
@@ -142,11 +171,11 @@ CREATE TABLE `elemento` (
 --
 
 INSERT INTO `elemento` (`Codigo_elemento`, `Nombre_elemento`, `stock`, `fk_tipoElemento`, `fk_unidadMedida`, `fk_categoria`, `fk_tipoEmpaque`, `fk_detalleUbicacion`, `Estado`) VALUES
-(1, 'Computadora', 20, 1, 1, 1, 1, 1, 'Inactivo'),
-(2, 'Impresora', 15, 2, 2, 2, 2, 2, 'Activo'),
-(3, 'Teléfono', 30, 1, 1, 1, 1, 3, 'Activo'),
-(4, 'Escritorio', 10, 2, 2, 2, 2, 4, 'Inactivo'),
-(5, 'Silla', 25, 1, 1, 1, 1, 5, 'Activo');
+(1, 'Computadora', 40, 1, 1, 1, 1, 1, 'Inactivo'),
+(2, 'Impresora', 27, 2, 2, 2, 2, 2, 'Inactivo'),
+(3, 'Teléfono', 42, 1, 1, 1, 1, 3, 'Inactivo'),
+(4, 'Escritorio', 40, 2, 2, 2, 2, 4, 'Inactivo'),
+(5, 'Silla', 112, 1, 1, 1, 1, 5, 'Inactivo');
 
 -- --------------------------------------------------------
 
@@ -156,7 +185,7 @@ INSERT INTO `elemento` (`Codigo_elemento`, `Nombre_elemento`, `stock`, `fk_tipoE
 
 CREATE TABLE `movimiento` (
   `Codigo_movimiento` int NOT NULL,
-  `fecha_movimiento` date DEFAULT NULL,
+  `fecha_movimiento` datetime DEFAULT CURRENT_TIMESTAMP,
   `Usuario_solicitud` int DEFAULT NULL,
   `fk_movimiento` int DEFAULT NULL,
   `Estado` enum('Confirmada','En espera','Cancelada','En Prestamo','Finalizada') DEFAULT 'En espera'
@@ -167,12 +196,40 @@ CREATE TABLE `movimiento` (
 --
 
 INSERT INTO `movimiento` (`Codigo_movimiento`, `fecha_movimiento`, `Usuario_solicitud`, `fk_movimiento`, `Estado`) VALUES
-(1, '2024-03-10', 1, 1, NULL),
-(2, '2024-03-11', 2, 2, NULL),
-(3, '2024-03-12', 3, 3, 'Cancelada'),
-(4, '2024-03-13', 4, 1, NULL),
-(5, '2024-03-14', 5, 2, NULL),
-(7, NULL, 1, 1, NULL);
+(1, '2024-03-10 00:00:00', 1, 1, NULL),
+(2, '2024-03-11 00:00:00', 2, 2, NULL),
+(3, '2024-03-12 00:00:00', 3, 3, 'Cancelada'),
+(4, '2024-03-13 00:00:00', 4, 1, NULL),
+(5, '2024-03-14 00:00:00', 5, 2, NULL),
+(7, '2024-04-09 00:00:00', 1, 1, NULL),
+(8, NULL, 1, 1, NULL),
+(9, NULL, 1, 1, NULL),
+(10, NULL, 1, 1, NULL),
+(11, NULL, 1, 1, NULL),
+(12, '2024-04-02 11:09:35', 1, 1, NULL),
+(13, '2024-04-02 11:10:46', 1, 1, NULL),
+(14, '2024-04-02 11:10:52', 1, 1, NULL),
+(17, '2024-04-02 11:11:40', 1, 1, NULL),
+(18, '2024-04-02 11:11:54', 1, 1, NULL),
+(19, '2024-04-02 11:12:13', 1, 1, NULL),
+(20, '2024-04-02 11:12:20', 1, 1, NULL),
+(21, '2024-04-02 11:12:29', 1, 1, NULL),
+(22, '2024-04-02 11:13:12', 1, 1, NULL),
+(23, '2024-04-02 11:13:19', 1, 1, NULL),
+(24, '2024-04-02 11:14:02', 1, 1, NULL),
+(25, '2024-04-02 11:14:10', 1, 1, NULL),
+(26, '2024-04-02 11:25:03', 1, 1, NULL),
+(27, '2024-04-02 11:28:00', 1, 1, NULL),
+(28, '2024-04-02 11:28:18', 1, 2, NULL),
+(29, '2024-04-02 11:28:37', 1, 2, NULL),
+(30, '2024-04-02 11:30:26', 1, 1, NULL),
+(31, '2024-04-02 11:30:34', 1, 2, NULL),
+(32, '2024-04-05 07:13:15', 1, 1, NULL),
+(33, '2024-04-05 07:13:29', 1, 2, NULL),
+(34, '2024-04-05 07:14:50', 1, 1, NULL),
+(35, '2024-04-05 07:15:04', 1, 1, NULL),
+(36, '2024-04-05 07:15:41', 1, 1, NULL),
+(37, '2024-04-05 07:15:53', 1, 2, NULL);
 
 -- --------------------------------------------------------
 
@@ -274,20 +331,23 @@ CREATE TABLE `usuario` (
   `numero` varchar(20) DEFAULT NULL,
   `contraseña_usuario` varchar(255) DEFAULT NULL,
   `Id_ficha` int DEFAULT NULL,
-  `Estado` enum('Activo','Inactivo') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'Activo'
+  `Estado` enum('Activo','Inactivo') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'Activo',
+  `identificacion` int NOT NULL,
+  `fecha_creacion` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_Actualizacion` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Volcado de datos para la tabla `usuario`
 --
 
-INSERT INTO `usuario` (`id_usuario`, `nombre_usuario`, `apellido_usuario`, `email_usuario`, `rol`, `numero`, `contraseña_usuario`, `Id_ficha`, `Estado`) VALUES
-(1, 'Juan', 'Perez', 'juan@example.com', 'administrador', '123456789', 'hashed_password_1', 1, 'Activo'),
-(2, 'Maria', 'Gomez', 'maria@example.com', 'Encargado', '987654321', 'hashed_password_2', 2, 'Activo'),
-(3, 'Pedro', 'Rodriguez', 'pedro@example.com', 'Usuario', '456789123', 'hashed_password_3', 3, 'Inactivo'),
-(4, 'Ana', 'Lopez', 'ana@example.com', 'Usuario', '789123456', 'hashed_password_4', 4, 'Activo'),
-(5, 'Laura', 'Martinez', 'laura@example.com', 'Usuario', '321654987', 'hashed_password_5', 5, 'Activo'),
-(6, 'Cristian', 'Giron', 'cf.giron04@gmail.com', 'administrador', '3123028342', '123admin', 2644590, 'Activo');
+INSERT INTO `usuario` (`id_usuario`, `nombre_usuario`, `apellido_usuario`, `email_usuario`, `rol`, `numero`, `contraseña_usuario`, `Id_ficha`, `Estado`, `identificacion`, `fecha_creacion`, `fecha_Actualizacion`) VALUES
+(1, 'Juan', 'Perez', 'juan@example.com', 'administrador', '123456789', 'hashed_password_1', 1, 'Activo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21'),
+(2, 'Maria', 'Gomez', 'maria@example.com', 'Encargado', '987654321', 'hashed_password_2', 2, 'Activo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21'),
+(3, 'Pedro', 'Rodriguez', 'pedro@example.com', 'Usuario', '456789123', 'hashed_password_3', 3, 'Inactivo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21'),
+(4, 'Ana', 'Lopez', 'ana@example.com', 'Usuario', '789123456', 'hashed_password_4', 4, 'Activo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21'),
+(5, 'Laura', 'Martinez', 'laura@example.com', 'Usuario', '321654987', 'hashed_password_5', 5, 'Activo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21'),
+(6, 'Cristian', 'Giron', 'cf.giron04@gmail.com', 'administrador', '3123028342', '123admin', 2644590, 'Activo', 0, '2024-04-05 07:23:21', '2024-04-05 07:23:21');
 
 -- --------------------------------------------------------
 
@@ -410,7 +470,7 @@ ALTER TABLE `categoria_elemento`
 -- AUTO_INCREMENT de la tabla `detalle_movimiento`
 --
 ALTER TABLE `detalle_movimiento`
-  MODIFY `codigo_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `codigo_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_ubicacion`
@@ -428,7 +488,7 @@ ALTER TABLE `elemento`
 -- AUTO_INCREMENT de la tabla `movimiento`
 --
 ALTER TABLE `movimiento`
-  MODIFY `Codigo_movimiento` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `Codigo_movimiento` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- AUTO_INCREMENT de la tabla `tipo_elemento`
