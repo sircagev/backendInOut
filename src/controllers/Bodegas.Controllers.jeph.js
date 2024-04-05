@@ -12,7 +12,7 @@ export const RegistrarBodega = async (req, res) => {
             return res.status(400).json({ "message": "El campo de ubicación no puede estar vacío." });
         }
 
-        const sql = `INSERT INTO bodega (codigo_bodega, ubicacion, nombre_bodega)
+        const sql = `INSERT INTO bodega (codigo_Bodega, ubicacion, Nombre_bodega)
                      VALUES (?, ?, ?)`;
         const values = [codigo_bodega, ubicacionBodega, nombreBodega];
 
