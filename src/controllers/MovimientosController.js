@@ -164,12 +164,21 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
 
 
             if (elementoRows.length > 0) {
-                const stockNuevo = parseInt(elementoRows[0].stock) + parseInt(cantidad);
+                if (fk_movimiento == 1) {
+                    const stockNuevo = parseInt(elementoRows[0].stock) + parseInt(cantidad);
 
-                const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
-                const stockValues = [stockNuevo, fk_elemento];
-                const [responseStock] = await pool.query(stockSql, stockValues);
-                console.log(responseStock);
+                    const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
+                    const stockValues = [stockNuevo, fk_elemento];
+                    const [responseStock] = await pool.query(stockSql, stockValues);
+                    console.log(responseStock);
+                } else if(fk_movimiento == 2){
+                    const stockNuevo = parseInt(elementoRows[0].stock) - parseInt(cantidad);
+
+                    const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
+                    const stockValues = [stockNuevo, fk_elemento];
+                    const [responseStock] = await pool.query(stockSql, stockValues);
+                    console.log(responseStock);
+                }
             }
         };
 
@@ -188,7 +197,7 @@ export const RegistrarDetalleMovimiento = async (req, res) => {
         const { movimientoId } = req.params.id;
         let fecha;
 
-        if(Fecha === '') fecha = null 
+        if (Fecha === '') fecha = null
         else Fecha = Fecha
 
         const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega) 
@@ -196,7 +205,7 @@ export const RegistrarDetalleMovimiento = async (req, res) => {
         const detalleValues = [Movimiento, Elemento, fecha, Cantidad, Recibe, Entrega];
         let [detalleRows] = await pool.query(detalleSql, detalleValues);
 
-        if(detalleRows.affectedRows > 0) {
+        if (detalleRows.affectedRows > 0) {
             return res.status(200).json({ message: "Detalle Registrado" });
         }
     } catch (error) {
