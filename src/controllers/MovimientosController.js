@@ -194,7 +194,6 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
 export const RegistrarDetalleMovimiento = async (req, res) => {
     try {
         const { Movimiento, Elemento, Fecha, Cantidad, Recibe, Entrega } = req.body;
-        const { movimientoId } = req.params.id;
         let fecha;
 
         if (Fecha === '') fecha = null
