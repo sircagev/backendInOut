@@ -3,16 +3,16 @@ import { validationResult } from 'express-validator';
 
 export const registrarUsuario = async (req, res) => {
     try {
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha } = req.body;
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
         // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-        let contraseña_usuario = nombre_usuario;
+        let contraseña_usuario = identificacion;
 
-        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha)
-                    VALUES ('${nombre_usuario}', '${apellido_usuario}', '${email_usuario}', '${rol}', '${numero}', '${contraseña_usuario}', '${Id_ficha}')`;
+        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha,  identificacion)
+                    VALUES ('${nombre_usuario}', '${apellido_usuario}', '${email_usuario}', '${rol}', '${numero}', '${contraseña_usuario}', '${Id_ficha}', '${identificacion}')`;
 
         let [rows] = await pool.query(sql);
 
@@ -55,36 +55,47 @@ export const EliminarUsuario= async(req, res) => {
         }
     }
 
-export const BuscarUsuario = async(req, res) => {
+export const BuscarUsuario = async (req, res) => {
+    try {
+        // Validar el ID de usuario
+        const id_usuario = req.params.id;
+        if (!id_usuario) {
+            return res.status(400).json({ message: 'ID de usuario no proporcionado' });
+        }
 
-    let id_usuario = req.params.id;
-    let sql = `select * from usuario where id_usuario = ${id_usuario}`;
+        // Consultar el usuario por su ID en la base de datos
+        const sql = 'SELECT * FROM usuario WHERE id_usuario = ?';
+        const [rows] = await pool.query(sql, [id_usuario]);
 
-    let[rows]= await pool.query(sql, [id_usuario]);
-
-    if(rows.length){
-        return res.status(200).json({'Datos': rows});
+        // Verificar si se encontró el usuario
+        if (rows.length > 0) {
+            return res.status(200).json({ Datos: rows });
+        } else {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al buscar usuario:', error);
+        return res.status(500).json({ message: 'Error interno del servidor' });
     }
-    else{
-       return res.status(403).json({'message': 'Usuarios No encontrado'});            
-    }
-}
+};
+
 
 export const ActualizarUsuario= async(req, res) =>{
     try{
 
         let id_usuario = req.params.id;
-        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha}= req.body;
+        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion}= req.body;
         let sql = `UPDATE usuario SET nombre_usuario = ?,
                                        apellido_usuario = ?,
                                        email_usuario = ?,
                                        rol = ?,
                                        numero = ?,
                                        contraseña_usuario = ?,
-                                       Id_ficha = ?
+                                       Id_ficha = ?,
+                                       identificacion = ?
                                        WHERE id_usuario = ?`
     
-        let[rows] = await pool.query(sql, [nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, id_usuario]);
+        let[rows] = await pool.query(sql, [nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion, id_usuario]);
 
         if(rows.affectedRows){
             return res.status(200).json({'message': 'Usuario actualizado con exito'});
