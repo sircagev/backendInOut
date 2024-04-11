@@ -129,9 +129,9 @@ export const EstadoUsuario = async(req, res)=>{
 
 export const InicioSesion = async (req, res) => {
     try {
-        const { email_usuario, contraseña_usuario } = req.body;
-        const sql = `SELECT * FROM usuario WHERE email_usuario = ? AND contraseña_usuario = ?`;
-        const [rows] = await pool.query(sql, [email_usuario, contraseña_usuario]);
+        const { identificacion, contraseña_usuario } = req.body;
+        const sql = `SELECT * FROM usuario WHERE identificacion = ? AND contraseña_usuario = ?`;
+        const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
 
         if (rows.length > 0) {
             return res.status(200).json({ 'message': 'Inicio de sesión exitoso' });
