@@ -58,16 +58,14 @@ export const EliminarUsuario= async(req, res) => {
 export const BuscarUsuario = async (req, res) => {
     try {
         // Validar el ID de usuario
-        const id_usuario = req.params.id;
-        if (!id_usuario) {
+        const identificacion = req.params.id;
+        if (!identificacion) {
             return res.status(400).json({ message: 'ID de usuario no proporcionado' });
         }
 
-        // Consultar el usuario por su ID en la base de datos
-        const sql = 'SELECT * FROM usuario WHERE id_usuario = ?';
-        const [rows] = await pool.query(sql, [id_usuario]);
+        const sql = 'SELECT * FROM usuario WHERE identificacion = ?';
+        const [rows] = await pool.query(sql, [identificacion]);
 
-        // Verificar si se encontró el usuario
         if (rows.length > 0) {
             return res.status(200).json({ Datos: rows });
         } else {
@@ -130,18 +128,19 @@ export const EstadoUsuario = async(req, res)=>{
 export const InicioSesion = async (req, res) => {
     try {
         const { identificacion, contraseña_usuario } = req.body;
-        const sql = `SELECT * FROM usuario WHERE identificacion = ? AND contraseña_usuario = ?`;
+        const sql = `SELECT * FROM usuario WHERE identificacion = ? AND contraseña_usuario = ? AND Estado = 'Activo'`;
         const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
 
         if (rows.length > 0) {
             return res.status(200).json({ 'message': 'Inicio de sesión exitoso' });
         } else {
-            return res.status(403).json({ 'message': 'Email o contraseña incorrectos' });
+            return res.status(403).json({ 'message': 'Usuario o Contraseña incorrectos' });
         }
     } catch (error) {
         return res.status(500).json({ 'message': error.message });
     }
 }
+
 
 export const DesactivarUsuario = async (req, res) => {
     try {
