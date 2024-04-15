@@ -93,15 +93,15 @@ export const ActualizarBodega = async (req, res) => {
     }
 }
 
-export const DesactivarBodega = async(req, res) => {
+export const DesactivarBodega = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Consulta SQL para obtener el estado actual del empaque
+        // Consulta SQL para obtener el estado actual de la bodega
         const sqlGetEstado = `SELECT Estado FROM bodega WHERE codigo_Bodega = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        // Verificar si se encontró el empaque
+        // Verificar si se encontró la bodega
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Bodega no encontrado." });
         }
@@ -120,7 +120,7 @@ export const DesactivarBodega = async(req, res) => {
         const sqlUpdateEstado = `UPDATE bodega SET Estado = ? WHERE codigo_Bodega = ?`;
         await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
-        // Consulta SQL para obtener los empaques activos restantes
+        // Consulta SQL para obtener las bodegas activas restantes
         const sqlSelectActivos = `SELECT * FROM bodega WHERE Estado = 'Activo'`;
         const [result] = await pool.query(sqlSelectActivos);
 
