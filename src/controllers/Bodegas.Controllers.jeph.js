@@ -57,11 +57,11 @@ export const listarBodegas = async(req,res)=> {
 export const BuscarBodega = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from bodegas where codigo_bodega = ?`;
+        let sql = `select * from bodega where codigo_bodega = ?`;
         let [rows] = await pool.query(sql, [id]);
 
         if (rows.length > 0) {
-            return res.status(200).json({ "message": "Bodega encontrado con éxito", "Elemento": rows[0] });
+            return res.status(200).json(rows);
         } else {
             return res.status(404).json({ "message": "Bodega no encontrado" });
         }
