@@ -1,36 +1,39 @@
 import {pool} from '../database/conexion.js';
 import { validationResult } from 'express-validator';
 
-export const registrarUsuario = async(req, res)=>{
-    try{
-        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha}= req.body;
+export const registrarUsuario = async (req, res) => {
+    try {
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
         const errors = validationResult(req);
-        if(!errors.isEmpty())return res.status(400).json(errors) 
+        if (!errors.isEmpty()) return res.status(400).json(errors);
 
-        let sql = `insert into usuario (nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha)
-                    values('${nombre_usuario}','${apellido_usuario}','${email_usuario}','${rol}','${numero}','${contraseña_usuario}','${Id_ficha}')`
+        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
+        let contraseña_usuario = identificacion;
 
-         let[rows] = await pool.query(sql);
+        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha,  identificacion)
+                    VALUES ('${nombre_usuario}', '${apellido_usuario}', '${email_usuario}', '${rol}', '${numero}', '${contraseña_usuario}', '${Id_ficha}', '${identificacion}')`;
 
-         if(rows.affectedRows > 0){
-            return res.status(200).json({'message': 'Usuario Registrado con Exito'});
-         }
-         else{
-            return res.status(403).json({'message': 'Usuario No Registrado'});            
-         }
-    }
-    catch(e){
-        return res.status(500).json({'message': e.message});
+        let [rows] = await pool.query(sql);
+
+        if (rows.affectedRows > 0) {
+            return res.status(200).json({ 'message': 'Usuario Registrado con Éxito' });
+        } else {
+            return res.status(403).json({ 'message': 'Usuario No Registrado' });
+        }
+    } catch (e) {
+        return res.status(500).json({ 'message': e.message });
     }
 }
+
+
 
 export const ListarUsuario = async(req, res) =>{
 
     let[result] = await pool.query('select *from usuario')
 
     if(result.length>0){
-        return res.status(200).json(result);
+        return res.status(200).json({result});
     }
     else{
        return res.status(403).json({'message': 'No existen Usuarios Registrados'});            
@@ -52,37 +55,45 @@ export const EliminarUsuario= async(req, res) => {
         }
     }
 
-export const BuscarUsuario = async(req, res) => {
+export const BuscarUsuario = async (req, res) => {
+    try {
+        // Validar el ID de usuario
+        const identificacion = req.params.id;
+        if (!identificacion) {
+            return res.status(400).json({ message: 'ID de usuario no proporcionado' });
+        }
 
-    let id_usuario = req.params.id;
-    let sql = `select * from usuario where id_usuario = ${id_usuario}`;
+        const sql = 'SELECT * FROM usuario WHERE identificacion = ?';
+        const [rows] = await pool.query(sql, [identificacion]);
 
-    let[rows]= await pool.query(sql, [id_usuario]);
-    console.log(rows);
-
-    if(rows.length){
-        return res.status(200).json({'Datos': rows});
+        if (rows.length > 0) {
+            return res.status(200).json({ Datos: rows });
+        } else {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al buscar usuario:', error);
+        return res.status(500).json({ message: 'Error interno del servidor' });
     }
-    else{
-       return res.status(403).json({'message': 'Usuarios No encontrado'});            
-    }
-}
+};
+
 
 export const ActualizarUsuario= async(req, res) =>{
     try{
 
         let id_usuario = req.params.id;
-        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha}= req.body;
+        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion}= req.body;
         let sql = `UPDATE usuario SET nombre_usuario = ?,
                                        apellido_usuario = ?,
                                        email_usuario = ?,
                                        rol = ?,
                                        numero = ?,
                                        contraseña_usuario = ?,
-                                       Id_ficha = ?
+                                       Id_ficha = ?,
+                                       identificacion = ?
                                        WHERE id_usuario = ?`
     
-        let[rows] = await pool.query(sql, [nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, id_usuario]);
+        let[rows] = await pool.query(sql, [nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion, id_usuario]);
 
         if(rows.affectedRows){
             return res.status(200).json({'message': 'Usuario actualizado con exito'});
@@ -116,16 +127,40 @@ export const EstadoUsuario = async(req, res)=>{
 
 export const InicioSesion = async (req, res) => {
     try {
-        const { email_usuario, contraseña_usuario } = req.body;
-        const sql = `SELECT * FROM usuario WHERE email_usuario = ? AND contraseña_usuario = ?`;
-        const [rows] = await pool.query(sql, [email_usuario, contraseña_usuario]);
+        const { identificacion, contraseña_usuario } = req.body;
+        const sql = `SELECT * FROM usuario WHERE identificacion = ? AND contraseña_usuario = ? AND Estado = 'Activo'`;
+        const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
 
         if (rows.length > 0) {
             return res.status(200).json({ 'message': 'Inicio de sesión exitoso' });
         } else {
-            return res.status(403).json({ 'message': 'Email o contraseña incorrectos' });
+            return res.status(403).json({ 'message': 'Usuario o Contraseña incorrectos' });
         }
     } catch (error) {
         return res.status(500).json({ 'message': error.message });
     }
 }
+
+
+export const DesactivarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const sql = `UPDATE usuario SET Estado = 'Inactivo' WHERE id_usuario = ?`;
+
+        const [result] = await pool.query(sql, [id]);
+
+        if (result.affectedRows > 0) {
+            return res.status(200).json({ message: "Usuario desactivado con éxito." });
+        } else {
+            return res.status(404).json({ "message": "Usuario no desactivado." });
+        }
+
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+
+
+
