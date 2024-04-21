@@ -101,10 +101,10 @@ export const DesactivarCategoria = async (req, res) => {
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'activo') {
-            nuevoEstado = 'inactivo';
-        } else if (estadoActual === 'inactivo') {
-            nuevoEstado = 'activo';
+        if (estadoActual === 'Activo') {
+            nuevoEstado = 'Inactivo';
+        } else if (estadoActual === 'Inactivo') {
+            nuevoEstado = 'Activo';
         }
 
         // Actualizar el estado en la base de datos

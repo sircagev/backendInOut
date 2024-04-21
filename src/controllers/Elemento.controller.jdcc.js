@@ -137,14 +137,36 @@ export const DesactivarElementos = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE elemento SET estado = 'inactivo' WHERE Codigo_elemento = ?`;
+        // Consulta SQL para obtener el estado actual de la ubicación
+        const sqlGetEstado = `SELECT estado FROM elemento WHERE Codigo_elemento = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la ubicación
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Elemento no encontrado." });
+        }
+
+        const estadoActual = estadoResult[0].estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'Activo') {
+            nuevoEstado = 'Inactivo';
+        } else if (estadoActual === 'Inactivo') {
+            nuevoEstado = 'Activo';
+        } else {
+            // En caso de un estado no esperado, mantener el estado actual
+            nuevoEstado = estadoActual;
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE elemento SET estado = ? WHERE Codigo_elemento = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Elemento desactivado con éxito." });
+            return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Elemento no desactivado." });
+            return res.status(404).json({ "message": "Elemento no actualizado." });
         }
 
     } catch (error) {

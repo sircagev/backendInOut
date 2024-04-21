@@ -88,11 +88,9 @@ export const DesactivarEmpaque = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Consulta SQL para obtener el estado actual del empaque
         const sqlGetEstado = `SELECT estado FROM tipo_empaque WHERE codigo_Empaque = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        // Verificar si se encontró el empaque
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Tipo de Empaque no encontrado." });
         }
@@ -100,22 +98,20 @@ export const DesactivarEmpaque = async (req, res) => {
         const estadoActual = estadoResult[0].estado;
         let nuevoEstado;
 
-        // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'activo') {
-            nuevoEstado = 'inactivo';
-        } else if (estadoActual === 'inactivo') {
-            nuevoEstado = 'activo';
+        if (estadoActual === 'Activo') {
+            nuevoEstado = 'Inactivo';
+        } else if (estadoActual === 'Inactivo') {
+            nuevoEstado = 'Activo';
         }
 
-        // Actualizar el estado en la base de datos
         const sqlUpdateEstado = `UPDATE tipo_empaque SET estado = ? WHERE codigo_Empaque = ?`;
-        await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
-        // Consulta SQL para obtener los empaques activos restantes
-        const sqlSelectActivos = `SELECT * FROM tipo_empaque WHERE estado = 'activo'`;
-        const [result] = await pool.query(sqlSelectActivos);
-
-        return res.status(200).json(result);
+        if (result.affectedRows > 0) {
+            return res.status(200).json({ message: `Empaque actualizado a estado ${nuevoEstado} con éxito.` });
+        } else {
+            return res.status(404).json({ "message": "Empaque no actualizado." });
+        }
 
     } catch (error) {
         return res.status(500).json({ message: error.message });

@@ -57,11 +57,13 @@ export const listarBodegas = async(req,res)=> {
 export const BuscarBodega = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `select * from bodega where codigo_bodega = ?`;
-        let [rows] = await pool.query(sql, [id]);
+        let id2 = id + '%';
+        let sql = `select * from bodegas where Nombre_bodega like ?`;
+        let [rows] = await pool.query(sql, id2);
 
         if (rows.length > 0) {
-            return res.status(200).json(rows);
+            return res.status(200).json({ "message": "Bodega encontrado con éxito", "Elemento": rows });
+
         } else {
             return res.status(404).json({ "message": "Bodega no encontrado" });
         }
@@ -73,15 +75,14 @@ export const BuscarBodega = async (req, res) => {
 export const ActualizarBodega = async (req, res) => {
     try {
         let id = req.params.id;
-        let { codigo_bodega, ubicacion_bodega, nombre_bodega } = req.body;
+        let { ubicacion, Nombre_bodega } = req.body;
         let sql = `
-            UPDATE bodegas
-                SET codigo_bodega = ?,
-                ubicacion_bodega = ?,
-                nombre_bodega = ?
-            WHERE codigo_bodega = ?
+            UPDATE bodega
+                SET ubicacion = ?,
+                Nombre_bodega = ?
+            WHERE codigo_Bodega = ?
         `;
-        let [rows] = await pool.query(sql, [ codigo_bodega, ubicacion_bodega, nombre_bodega, id]);
+        let [rows] = await pool.query(sql, [ ubicacion, Nombre_bodega, id]);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ "message": "Bodega actualizada con éxito" });
