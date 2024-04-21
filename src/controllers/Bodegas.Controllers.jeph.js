@@ -63,6 +63,7 @@ export const BuscarBodega = async (req, res) => {
 
         if (rows.length > 0) {
             return res.status(200).json({ "message": "Bodega encontrado con éxito", "Elemento": rows });
+
         } else {
             return res.status(404).json({ "message": "Bodega no encontrado" });
         }
