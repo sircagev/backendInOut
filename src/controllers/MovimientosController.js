@@ -8,7 +8,8 @@ export const ListarTodosMovimientos = async (req, res) => {
                         m.Codigo_movimiento AS "Codigo",
                         m.fecha_movimiento AS "Fecha",
                         CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
-                        tm.Nombre_movimiento AS "Tipo" 
+                        tm.Nombre_movimiento AS "Tipo",
+                        m.Estado AS "Estado"
                     FROM movimiento AS m 
                     JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
                     JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
