@@ -10,19 +10,25 @@ export const validarUsuario = async (req, res) => {
     let [rows] = await pool.query(sql);
 
     if (rows.length > 0) {
-      // Generar token
       let user = rows[0];
-      let token = jwt.sign({ userId: user.id_usuario }, process.env.SECRET_KEY, {
-        expiresIn: process.env.TIME,
-      });
 
-      // Devolver nombre de usuario, rol y token
-      return res.status(200).json({
-        message: "Usuario autenticado",
-        token,
-        userName: user.nombre_usuario,
-        role: user.rol,
-      });
+      // Verificar si el estado del usuario es "Activo"
+      if (user.Estado === 'Activo') {
+        // Generar token
+        let token = jwt.sign({ userId: user.id_usuario }, process.env.SECRET_KEY, {
+          expiresIn: process.env.TIME,
+        });
+
+        // Devolver nombre de usuario, rol y token
+        return res.status(200).json({
+          message: "Usuario autenticado",
+          token,
+          userName: user.nombre_usuario,
+          role: user.rol,
+        });
+      } else {
+        return res.status(403).json({ message: "El usuario no está activo" });
+      }
     } else {
       return res.status(404).json({ message: "Usuario no autenticado" });
     }
@@ -30,6 +36,7 @@ export const validarUsuario = async (req, res) => {
     return res.status(500).json({ message: e.message });
   }
 };
+
 
   export const validarToken = async (req, res, next) => {
     try {
