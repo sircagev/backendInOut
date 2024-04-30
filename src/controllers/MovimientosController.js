@@ -7,7 +7,9 @@ export const ListarTodosMovimientos = async (req, res) => {
         const sql = `SELECT 
                         m.Codigo_movimiento AS "Codigo",
                         m.fecha_movimiento AS "Fecha",
-                        CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
+                        u.nombre_usuario AS "Usuario",
+                        u.apellido_usuario AS "Apellido",
+                        u.email_usuario AS "Correo",
                         tm.Nombre_movimiento AS "Tipo",
                         m.Estado AS "Estado"
                     FROM movimiento AS m 
@@ -17,7 +19,7 @@ export const ListarTodosMovimientos = async (req, res) => {
 
         //Ejecutar la consulta
         const [result] = await pool.query(sql);
-        console.log(result)
+
         //Revisar que llego información y ejecutar manejo de errores
         if (result.length > 0) {
             return res.status(200).json({ message: "Movimientos listados", datos: result });
@@ -33,26 +35,29 @@ export const ListarTodosMovimientos = async (req, res) => {
 export const BuscarMovimiento = async (req, res) => {
     try {
         let { id } = req.params;
+        
+        const newId = id + '%'
 
         let sql = `SELECT 
                         m.Codigo_movimiento AS "Codigo",
                         m.fecha_movimiento AS "Fecha",
                         CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
-                        tm.Nombre_movimiento AS "Tipo" 
+                        tm.Nombre_movimiento AS "Tipo",
+                        m.Estado AS "Estado"
                     FROM movimiento AS m 
                     JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
                     JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-                    WHERE m.Codigo_movimiento =?
+                    WHERE m.Codigo_movimiento LIKE ?
                     ORDER BY Fecha DESC;`;
-        let [rows] = await pool.query(sql, [id]);
+        let [rows] = await pool.query(sql, [newId]);
 
         if (rows.length > 0) {
-            return res.status(200).json({ "message": "Movimiento encontrado con éxito", "Movimiento": rows });
+            return res.status(200).json({ "message": "Movimiento encontrado con éxito", Movimiento: rows });
         } else {
-            return res.status(404).json({ "message": "Movimiento no encontrado" });
+            return res.status(404).json({ "message": "Movimiento no encontrado", Movimiento: []});
         }
     } catch (error) {
-
+        return res.status(500).json({ message: error });
     }
 }
 
@@ -136,7 +141,7 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
         let { usuario_solicitud, fk_movimiento, Estado, detalles } = req.body;
         //Iniciar un transaccion en Sql
         await pool.query("START TRANSACTION");
-
+        console.log(req.body)
         //Crear un Nuevo Movimiento de tipo Prestamo
         const sqlMovimientoIngreso = `INSERT INTO movimiento (usuario_solicitud, fk_movimiento, Estado) 
                                     VALUES (?,?,?)`;
@@ -150,7 +155,7 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
         for (const detalle of detalles) {
             //Traer informacion de los detalles
             const { fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones } = detalle;
-
+            
             //Insertar de a un detalle
             const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones) 
                                 VALUES (?,?,?,?,?,?,?,?)`;
@@ -171,14 +176,14 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
                     const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
                     const stockValues = [stockNuevo, fk_elemento];
                     const [responseStock] = await pool.query(stockSql, stockValues);
-                    console.log(responseStock);
+                    
                 } else if(fk_movimiento == 2){
                     const stockNuevo = parseInt(elementoRows[0].stock) - parseInt(cantidad);
 
                     const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
                     const stockValues = [stockNuevo, fk_elemento];
                     const [responseStock] = await pool.query(stockSql, stockValues);
-                    console.log(responseStock);
+                    
                 }
             }
         };
