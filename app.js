@@ -41,7 +41,7 @@ app.use('/movimientos', movimientosRoute);
 app.use('/usuario', RouteUsuario);
 app.use('/validate', RouteValidar);
 app.use('/reporte', reportesRoute);
-app.use('/contraseña', RouteContraseña);
+app.use('/contrasena', RouteContraseña);
 
 
 //Servidor

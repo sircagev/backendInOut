@@ -3,7 +3,7 @@ import { password } from "../controllers/password.controller.js"
 
 const route = Router();
 
-route.post("/recuperar", password.tokenPassword);
-route.put("/reset", password.resetPassword);
+route.get("/recuperar", password.tokenPassword);
+route.put("/cambiar", password.resetPassword);
 
 export default route;
