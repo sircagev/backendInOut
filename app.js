@@ -15,6 +15,7 @@ import RouteElemento from "./src/routes/Elemento.Router.jdcc.js";
 import RouteUsuario from "./src/routes/usuario.router.js";
 import RouteValidar from "./src/routes/validator.router.js";
 import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
+import RouteContraseña from "./src/routes/password.router.js"
 
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/movimientos', movimientosRoute);
 app.use('/usuario', RouteUsuario);
 app.use('/validate', RouteValidar);
 app.use('/reporte', reportesRoute);
+app.use('/contrasena', RouteContraseña);
 
 
 //Servidor
