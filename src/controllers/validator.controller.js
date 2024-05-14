@@ -22,6 +22,7 @@ export const validarUsuario = async (req, res) => {
         token,
         userName: user.nombre_usuario,
         role: user.rol,
+        estado: user.Estado
       });
     } else {
       return res.status(404).json({ message: "Usuario no autenticado" });

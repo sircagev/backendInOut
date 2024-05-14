@@ -19,7 +19,7 @@ export const RegistrarCategoria = async (req, res) => {
 
 export const ListarCategoria = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM categoria_elemento ORDER BY estado = 'activo' DESC`);
+        let [result] = await pool.query(`SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM categoria_elemento`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -30,6 +30,7 @@ export const ListarCategoria = async (req, res) => {
         return res.status(500).json(error);
     }
 };
+
 
 
 export const BuscarCategoria = async (req, res) => {
