@@ -25,7 +25,8 @@ export const validarUsuario = async (req, res) => {
           token,
           userName: user.nombre_usuario,
           role: user.rol,
-          codigo: user.id_usuario
+          codigo: user.id_usuario,
+          estado: user.Estado
         });
       } else {
         return res.status(403).json({ message: "El usuario no está activo" });
