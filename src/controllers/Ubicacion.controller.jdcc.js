@@ -20,10 +20,13 @@ export const RegistrarUbicacion = async (req, res) => {
 export const ListarUbicacion = async (req, res) => {
     try {
         let [result] = await pool.query(`
-            SELECT e.*, c.Nombre_bodega 
-            FROM detalle_ubicacion AS e
-            JOIN bodega AS c ON e.fk_bodega = c.codigo_Bodega 
-            ORDER BY CASE WHEN e.estado = 'activo' THEN 1 ELSE 2 END, e.codigo_Detalle ASC
+        SELECT e.*, 
+       DATE_FORMAT(e.fecha_creacion, '%d/%m/%Y') AS fecha_creacion, 
+       c.Nombre_bodega 
+FROM detalle_ubicacion AS e
+LEFT JOIN bodega AS c 
+ON e.fk_bodega = c.codigo_Bodega 
+ORDER BY e.codigo_Detalle ASC
         `);
 
         if (result.length > 0) {
