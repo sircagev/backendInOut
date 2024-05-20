@@ -19,7 +19,7 @@ export const RegistrarEmpaque = async (req, res) => {
 
 export const ListarEmpaque = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT * FROM tipo_empaque ORDER BY estado = 'activo' DESC`);
+        let [result] = await pool.query(`SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM tipo_empaque`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
