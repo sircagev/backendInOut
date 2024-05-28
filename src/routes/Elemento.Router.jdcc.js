@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { RegistrarElemento, AñadirStock, ListarElemetos, BuscarElemento, ActualizarElemento, EliminarElemento, DesactivarElementos} from "../controllers/Elemento.controller.jdcc.js";
+import { validarUsuario } from "../controllers/validator.controller.js"
 
 const route = Router();
 
