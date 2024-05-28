@@ -48,23 +48,44 @@ export const AñadirStock = async (req, res) => {
 export const ListarElemetos = async (req, res) => {
     try {
         let [result] = await pool.query(
-                `SELECT e.*, c.nombre_categoria, n.nombre_tipoElemento, me.Nombre_Medida, em.Nombre_empaque, u.Nombre_ubicacion
-                FROM elemento AS e 
-                JOIN categoria_elemento AS c ON e.fk_categoria = c.codigo_categoria 
-                JOIN tipo_elemento AS n ON e.fk_tipoElemento = n.codigo_Tipo
-                JOIN unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
-                JOIN tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
-                JOIN detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle
-                ORDER BY CASE WHEN e.estado = 'activo' THEN 1 ELSE 2 END, e.codigo_elemento ASC`);
+            `SELECT 
+                e.Codigo_elemento,
+                e.Nombre_elemento,
+                e.stock,
+                c.nombre_categoria AS fk_categoria,
+                n.nombre_tipoElemento AS fk_tipoElemento,
+                me.Nombre_Medida AS fk_unidadMedida,
+                em.Nombre_empaque AS fk_tipoEmpaque,
+                u.Nombre_ubicacion AS fk_detalleUbicacion,
+                e.Estado,
+                DATE_FORMAT(e.fecha_creacion, '%d/%m/%Y') AS fecha_creacion,
+                e.fecha_actualizacion
+            FROM 
+                elemento AS e 
+            JOIN 
+                categoria_elemento AS c ON e.fk_categoria = c.codigo_categoria 
+            JOIN 
+                tipo_elemento AS n ON e.fk_tipoElemento = n.codigo_Tipo
+            JOIN 
+                unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
+            JOIN 
+                tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
+            JOIN 
+                detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle`
+        );
+
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
             return res.status(404).json([]);
         }
     } catch (error) {
-        return res.status(500).json(error);
+        console.error("Error al listar elementos:", error);
+        return res.status(500).json({ message: 'Error al listar elementos', error: error.message });
     }
-}
+};
+
+
 
 export const BuscarElemento = async (req, res) => {
     try {
@@ -95,27 +116,86 @@ export const BuscarElemento = async (req, res) => {
 
 export const ActualizarElemento = async (req, res) => {
     try {
-        let id = req.params.id;
-        let { Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
-        let sql = `UPDATE elemento SET
-                   Nombre_elemento = ? ,
-                   stock = ?,
-                   fk_tipoElemento = ?,
-                   fk_unidadMedida = ?,
-                   fk_categoria = ?,
-                   fk_tipoEmpaque = ?, 
-                   fk_detalleUbicacion = ?
-                   WHERE Codigo_elemento = ?`;
-        let [result] = await pool.query(sql, [Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion, id]);
+        const id = req.params.id;
+        const { Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
+
+        // Validación básica de entrada
+        if (!id || !Nombre_elemento || typeof stock === 'undefined' || !fk_tipoElemento || !fk_unidadMedida || !fk_categoria || !fk_tipoEmpaque || !fk_detalleUbicacion) {
+            return res.status(400).json({ "Message": "ID, Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque y fk_detalleUbicacion son requeridos." });
+        }
+
+        // Obtener codigo_categoria a partir del nombre_categoria
+        const [categoriaResult] = await pool.query('SELECT codigo_categoria FROM categoria_elemento WHERE nombre_categoria = ?', [fk_categoria]);
+        if (categoriaResult.length === 0) {
+            return res.status(400).json({ "Message": "Categoría no encontrada." });
+        }
+        const codigo_categoria = categoriaResult[0].codigo_categoria;
+
+        // Obtener codigo_Tipo a partir del nombre_tipoElemento
+        const [tipoElementoResult] = await pool.query('SELECT codigo_Tipo FROM tipo_elemento WHERE nombre_tipoElemento = ?', [fk_tipoElemento]);
+        if (tipoElementoResult.length === 0) {
+            return res.status(400).json({ "Message": "Tipo de elemento no encontrado." });
+        }
+        const codigo_Tipo = tipoElementoResult[0].codigo_Tipo;
+
+        // Obtener codigo_medida a partir del Nombre_Medida
+        const [unidadMedidaResult] = await pool.query('SELECT codigo_medida FROM unidad_medida WHERE Nombre_Medida = ?', [fk_unidadMedida]);
+        if (unidadMedidaResult.length === 0) {
+            return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
+        }
+        const codigo_medida = unidadMedidaResult[0].codigo_medida;
+
+        // Obtener Codigo_empaque a partir del Nombre_empaque
+        const [tipoEmpaqueResult] = await pool.query('SELECT Codigo_empaque FROM tipo_empaque WHERE Nombre_empaque = ?', [fk_tipoEmpaque]);
+        if (tipoEmpaqueResult.length === 0) {
+            return res.status(400).json({ "Message": "Tipo de empaque no encontrado." });
+        }
+        const Codigo_empaque = tipoEmpaqueResult[0].Codigo_empaque;
+
+        // Obtener codigo_Detalle a partir del Nombre_ubicacion
+        const [ubicacionResult] = await pool.query('SELECT codigo_Detalle FROM detalle_ubicacion WHERE Nombre_ubicacion = ?', [fk_detalleUbicacion]);
+        if (ubicacionResult.length === 0) {
+            return res.status(400).json({ "Message": "Ubicación no encontrada." });
+        }
+        const codigo_Detalle = ubicacionResult[0].codigo_Detalle;
+
+        // Consulta SQL para actualizar el elemento
+        const sql = `
+            UPDATE elemento 
+            SET
+                Nombre_elemento = ?, 
+                stock = ?, 
+                fk_tipoElemento = ?, 
+                fk_unidadMedida = ?, 
+                fk_categoria = ?, 
+                fk_tipoEmpaque = ?, 
+                fk_detalleUbicacion = ?
+            WHERE 
+                Codigo_elemento = ?`;
+
+        const [result] = await pool.query(sql, [
+            Nombre_elemento, 
+            stock, 
+            codigo_Tipo, 
+            codigo_medida, 
+            codigo_categoria, 
+            Codigo_empaque, 
+            codigo_Detalle, 
+            id
+        ]);
+
         if (result.affectedRows > 0) {
-            return res.status(200).json({ "message": "Elemento actualizado." });
+            return res.status(200).json({ "Message": "Elemento actualizado con éxito." });
         } else {
-            return res.status(404).json({ "message": "Elemento no actualizado." })
+            return res.status(400).json({ "Message": "Elemento no actualizado. Verifique que el ID exista." });
         }
     } catch (error) {
-        return res.status(500).json({ "message": error.message });
+        console.error("Error al actualizar el elemento:", error);
+        return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };
+
+
 
 export const EliminarElemento = async (req, res) => {
     try {

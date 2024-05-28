@@ -20,24 +20,32 @@ export const RegistrarUbicacion = async (req, res) => {
 export const ListarUbicacion = async (req, res) => {
     try {
         let [result] = await pool.query(`
-        SELECT e.*, 
-       DATE_FORMAT(e.fecha_creacion, '%d/%m/%Y') AS fecha_creacion, 
-       c.Nombre_bodega 
-FROM detalle_ubicacion AS e
-LEFT JOIN bodega AS c 
-ON e.fk_bodega = c.codigo_Bodega 
-ORDER BY e.codigo_Detalle ASC
+            SELECT 
+                e.codigo_Detalle,
+                e.Nombre_ubicacion,
+                c.Nombre_bodega AS fk_bodega,
+                e.estado,
+                DATE_FORMAT(e.fecha_creacion, '%d/%m/%Y') AS fecha_creacion,
+                e.fecha_actualizacion
+            FROM 
+                detalle_ubicacion AS e
+            LEFT JOIN 
+                bodega AS c 
+            ON 
+                e.fk_bodega = c.codigo_Bodega 
+            ORDER BY 
+                e.codigo_Detalle ASC
         `);
 
-        if (result.length > 0) {
-            return res.status(200).json(result);
-        } else {
-            return res.status(404).json([]);
-        }
+        res.json(result);
     } catch (error) {
-        return res.status(500).json(error);
+        console.error("Error al listar ubicaciones:", error);
+        res.status(500).json({ message: 'Error al listar ubicaciones', error: error.message });
     }
 };
+
+
+
 
 
 export const BuscarUbicacion = async (req, res) => {
@@ -64,21 +72,39 @@ export const BuscarUbicacion = async (req, res) => {
 
 export const ActualizarUbicacion = async (req, res) => {
     try {
-        let id = req.params.id;
-        let {Nombre_ubicacion, fk_bodega} = req.body;
-        let sql = `UPDATE detalle_ubicacion SET Nombre_ubicacion = ?, fk_bodega = ?  WHERE codigo_Detalle = ?`;
+        const id = req.params.id;
+        const { Nombre_ubicacion, fk_bodega } = req.body;
 
-        let [result] = await pool.query(sql, [Nombre_ubicacion, fk_bodega, id]);
+        // Validación básica de entrada
+        if (!id || !Nombre_ubicacion || !fk_bodega) {
+            return res.status(400).json({ "Message": "ID, Nombre_ubicacion y fk_bodega son requeridos." });
+        }
+
+        // Obtener codigo_Bodega a partir del Nombre_bodega
+        const [bodegaResult] = await pool.query('SELECT codigo_Bodega FROM bodega WHERE Nombre_bodega = ?', [fk_bodega]);
+
+        if (bodegaResult.length === 0) {
+            return res.status(400).json({ "Message": "Bodega no encontrada." });
+        }
+
+        const codigo_Bodega = bodegaResult[0].codigo_Bodega;
+
+        // Consulta SQL para actualizar la ubicación
+        const sql = `UPDATE detalle_ubicacion SET Nombre_ubicacion = ?, fk_bodega = ? WHERE codigo_Detalle = ?`;
+
+        const [result] = await pool.query(sql, [Nombre_ubicacion, codigo_Bodega, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({"Message": "Detalle de ubicación actualizado con éxito."});
+            return res.status(200).json({ "Message": "Detalle de ubicación actualizado con éxito." });
         } else {
-            return res.status(400).json({"Message": "Detalle de ubicación no actualizado."});
+            return res.status(400).json({ "Message": "Detalle de ubicación no actualizado. Verifique que el ID exista." });
         }
-    } catch (error){
-        return res.status(500).json(error);
+    } catch (error) {
+        console.error("Error al actualizar la ubicación:", error);
+        return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
-}
+};
+
 
 export const EliminarUbicacion = async (req, res) => {
     try {
