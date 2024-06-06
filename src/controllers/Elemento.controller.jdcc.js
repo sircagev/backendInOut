@@ -117,12 +117,7 @@ export const BuscarElemento = async (req, res) => {
 export const ActualizarElemento = async (req, res) => {
     try {
         const id = req.params.id;
-        const { Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
-
-        // Validación básica de entrada
-        if (!id || !Nombre_elemento || typeof stock === 'undefined' || !fk_tipoElemento || !fk_unidadMedida || !fk_categoria || !fk_tipoEmpaque || !fk_detalleUbicacion) {
-            return res.status(400).json({ "Message": "ID, Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque y fk_detalleUbicacion son requeridos." });
-        }
+        const { Nombre_elemento, stock, fk_tipoElemento, fk_categoria, fk_unidadMedida, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
 
         // Obtener codigo_categoria a partir del nombre_categoria
         const [categoriaResult] = await pool.query('SELECT codigo_categoria FROM categoria_elemento WHERE nombre_categoria = ?', [fk_categoria]);
@@ -139,8 +134,9 @@ export const ActualizarElemento = async (req, res) => {
         const codigo_Tipo = tipoElementoResult[0].codigo_Tipo;
 
         // Obtener codigo_medida a partir del Nombre_Medida
-        const [unidadMedidaResult] = await pool.query('SELECT codigo_medida FROM unidad_medida WHERE Nombre_Medida = ?', [fk_unidadMedida]);
+        const [unidadMedidaResult] = await pool.query(`SELECT codigo_medida FROM unidad_medida WHERE Nombre_medida = ?`, [fk_unidadMedida]);
         if (unidadMedidaResult.length === 0) {
+            console.log(unidadMedidaResult);
             return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
         }
         const codigo_medida = unidadMedidaResult[0].codigo_medida;
@@ -166,8 +162,8 @@ export const ActualizarElemento = async (req, res) => {
                 Nombre_elemento = ?, 
                 stock = ?, 
                 fk_tipoElemento = ?, 
-                fk_unidadMedida = ?, 
                 fk_categoria = ?, 
+                fk_unidadMedida = ?,
                 fk_tipoEmpaque = ?, 
                 fk_detalleUbicacion = ?
             WHERE 
@@ -177,8 +173,8 @@ export const ActualizarElemento = async (req, res) => {
             Nombre_elemento, 
             stock, 
             codigo_Tipo, 
-            codigo_medida, 
             codigo_categoria, 
+            codigo_medida,
             Codigo_empaque, 
             codigo_Detalle, 
             id
