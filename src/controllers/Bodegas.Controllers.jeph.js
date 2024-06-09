@@ -2,27 +2,16 @@ import { pool } from '../database/conexion.js';
 
 export const RegistrarBodega = async (req, res) => {
     try {
-        const { codigo_bodega, ubicacionBodega, nombreBodega } = req.body;
+        const {ubicacion, Nombre_bodega } = req.body;
 
         // Agregamos un registro para ver los datos recibidos
         console.log("Datos recibidos para registrar bodega:", req.body);
 
- 
-        if (!ubicacionBodega) {
-            return res.status(400).json({ "message": "El campo de ubicación no puede estar vacío." });
-        }
-
-        const sql = `INSERT INTO bodega (codigo_Bodega, ubicacion, Nombre_bodega)
-                     VALUES (?, ?, ?)`;
-        const values = [codigo_bodega, ubicacionBodega, nombreBodega];
+        const sql = `INSERT INTO bodega (ubicacion, Nombre_bodega )
+                     VALUES ( ?, ?)`;
+        const values = [ubicacion, Nombre_bodega];
 
         const [rows] = await pool.query(sql, values);
-
-
-
-
-
-        
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ "message": "Se registró con éxito la Bodega" });
@@ -37,22 +26,21 @@ export const RegistrarBodega = async (req, res) => {
     }
 };
 
-export const listarBodegas = async(req,res)=> {
-
-    try{
-        const [result] = await pool.query('select * from bodega');
+export const listarBodegas = async(req, res) => {
+    try {
+        const [result] = await pool.query("SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM bodega");
         
-        if(result.length>0){
+        if(result.length > 0) {
             return res.status(200).json(result); 
         } else {
-            return res.status(404).json({'message': 'No se econtró categorias'});
+            return res.status(404).json({ 'message': 'No se encontró categorías' });
         }
         
-    }catch(e){
-        return res.status(500).json({'message': 'error' + e});
+    } catch (e) {
+        return res.status(500).json({ 'message': 'error' + e });
     }
-
 };
+
 
 export const BuscarBodega = async (req, res) => {
     try {
