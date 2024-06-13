@@ -94,37 +94,45 @@ export const ReporteElementosPorCategoria = async (req, res) => {
 };
 
 // Reporte de elementos por ubicación
-export const ReporteElementosPorUbicacion = async (req, res) => {
+export const ubicacionElementos = async (req, res) => {
     try {
-        
         const sql = `
-            SELECT u.Nombre_ubicacion, e.Nombre_elemento, e.stock, c.nombre_categoria, n.nombre_tipoElemento, me.Nombre_Medida, em.Nombre_empaque
-            FROM elemento AS e 
-            JOIN categoria_elemento AS c ON e.fk_categoria = c.codigo_categoria 
-            JOIN tipo_elemento AS n ON e.fk_tipoElemento = n.codigo_Tipo
-            JOIN unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
-            JOIN tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
-            JOIN detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle
-            WHERE e.Estado = 'Activo'
-            ORDER BY u.Nombre_ubicacion, e.Nombre_elemento ASC
+            SELECT 
+                b.Nombre_bodega AS Bodega,
+                e.Nombre_elemento AS Nombre_elemento,
+                e.Codigo_elemento AS Id_elemento,
+                du.Nombre_ubicacion AS Nombre_ubicacion,
+                e.stock AS Stock
+            FROM 
+                bodega b
+                JOIN detalle_ubicacion du ON b.codigo_Bodega = du.fk_bodega
+                JOIN elemento e ON du.codigo_Detalle = e.fk_detalleUbicacion
+                LEFT JOIN detalle_movimiento dm ON e.Codigo_elemento = dm.fk_elemento
+            WHERE
+                e.Estado = 'Activo'
+            GROUP BY
+                Bodega, Nombre_elemento, Id_elemento, Nombre_ubicacion, Stock
+            ORDER BY
+                Bodega, Nombre_elemento;
         `;
+        
         const [rows] = await pool.query(sql);
 
         if (rows.length > 0) {
-            
             const reporte = {};
             rows.forEach(row => {
-                if (!reporte[row.Nombre_ubicacion]) {
-                    reporte[row.Nombre_ubicacion] = [];
-                }
-                reporte[row.Nombre_ubicacion].push({
+                const elemento = {
+                    "Bodega": row.Bodega,
                     "Nombre_elemento": row.Nombre_elemento,
-                    "stock": row.stock,
-                    "Categoria": row.nombre_categoria,
-                    "Tipo_elemento": row.nombre_tipoElemento,
-                    "Unidad_medida": row.Nombre_Medida,
-                    "Empaque": row.Nombre_empaque
-                });
+                    "Id_elemento": row.Id_elemento,
+                    "Nombre_ubicacion": row.Nombre_ubicacion,
+                    "Stock": row.Stock
+                };
+
+                if (!reporte[row.Bodega]) {
+                    reporte[row.Bodega] = [];
+                }
+                reporte[row.Bodega].push(elemento);
             });
             return res.status(200).json(reporte);
         } else {
@@ -134,6 +142,10 @@ export const ReporteElementosPorUbicacion = async (req, res) => {
         return res.status(500).json({ "message": error.message });
     }
 };
+
+
+
+
 
 //reporte inventario bajo
 
@@ -332,30 +344,41 @@ export const ReporteEstadoPrestamos = async (req, res) => {
 
 //historial de todos los movimientos
 
-
 export const ReporteHistorialPrestamos = async (req, res) => {
     try {
-        const sql = `SELECT 
-        Codigo_movimiento AS 'ID del Prestamo',
-        CONCAT(nombre_usuario, ' ', apellido_usuario) AS 'Usuario',
-        Nombre_elemento AS 'Elemento',
-        fecha_movimiento AS 'Fecha del Prestamo',
-        fecha_devolucion AS 'Fecha de Devolucion',
-        m.Estado AS 'Estado del Prestamo'
-    FROM movimiento AS m
-    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-    JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
-    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento`;
+        const sql = `
+           SELECT 
+                m.Codigo_movimiento AS 'ID del Prestamo',
+                CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS 'Usuario',
+                m.fecha_movimiento AS 'Fecha del Prestamo',
+                m.Estado AS 'Estado del Prestamo',
+                tm.Nombre_movimiento AS 'Tipo de Movimiento',
+                dm.Observaciones AS 'Observaciones',
+                e.nombre_elemento AS 'Nombre del Elemento', -- Ajuste aquí para mostrar el nombre del elemento
+                dm.cantidad AS 'Cantidad',
+                CONCAT(ur.nombre_usuario, ' ', ur.apellido_usuario) AS 'Usuario Recibe',
+                CONCAT(ue.nombre_usuario, ' ', ue.apellido_usuario) AS 'Usuario Entrega'
+            FROM movimiento AS m
+            JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
+            JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
+            JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
+            JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
+            JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
+            JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+        `;
 
         const [result] = await pool.query(sql);
 
         if (result.length > 0) {
-            return res.status(200).json({ message: "Historial de prestamos encontrados", datos: result });
+            return res.status(200).json({ message: "Historial de préstamos encontrados", datos: result });
         } else {
-            return res.status(404).json({ message: "No se encontraron historial de prestamos" });
+            return res.status(404).json({ message: "No se encontraron historial de préstamos" });
         }
     } catch (error) {
-        return res.status(500).json({ message: error });
+        return res.status(500).json({ message: "Error al obtener el historial de préstamos", error: error.message });
     }
-}
+};
+
+
+
 
