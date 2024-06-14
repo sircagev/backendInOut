@@ -33,7 +33,7 @@ export const ListarUsuario = async(req, res) =>{
     let[result] = await pool.query('select *from usuario')
 
     if(result.length>0){
-        return res.status(200).json({result});
+        return res.status(200).json(result);
     }
     else{
        return res.status(403).json({'message': 'No existen Usuarios Registrados'});            
@@ -146,14 +146,36 @@ export const DesactivarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE usuario SET Estado = 'Inactivo' WHERE id_usuario = ?`;
+        // Consulta SQL para obtener el estado actual de la ubicación
+        const sqlGetEstado = `SELECT Estado FROM usuario WHERE id_usuario = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la ubicación
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado." });
+        }
+
+        const estadoActual = estadoResult[0].Estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'Activo') {
+            nuevoEstado = 'Inactivo';
+        } else if (estadoActual === 'Inactivo') {
+            nuevoEstado = 'Activo';
+        } else {
+            // En caso de un estado no esperado, mantener el estado actual
+            nuevoEstado = estadoActual;
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE usuario SET Estado = ? WHERE id_usuario = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Usuario desactivado con éxito." });
+            return res.status(200).json({ message: `usuario actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Usuario no desactivado." });
+            return res.status(404).json({ "message": "usuario no actualizado." });
         }
 
     } catch (error) {
