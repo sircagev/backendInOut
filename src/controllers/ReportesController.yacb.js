@@ -285,7 +285,7 @@ export const ReporteMovimientosPorFecha = async (req, res) => {
     }
 }
 
-
+//Modulo movimientos
 //movimientos activos
 
 
@@ -347,35 +347,41 @@ export const ReporteEstadoPrestamos = async (req, res) => {
 export const ReporteHistorialPrestamos = async (req, res) => {
     try {
         const sql = `
-           SELECT 
-                m.Codigo_movimiento AS 'ID del Prestamo',
-                CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS 'Usuario',
-                m.fecha_movimiento AS 'Fecha del Prestamo',
-                m.Estado AS 'Estado del Prestamo',
-                tm.Nombre_movimiento AS 'Tipo de Movimiento',
-                dm.Observaciones AS 'Observaciones',
-                e.nombre_elemento AS 'Nombre del Elemento', -- Ajuste aquí para mostrar el nombre del elemento
-                dm.cantidad AS 'Cantidad',
-                CONCAT(ur.nombre_usuario, ' ', ur.apellido_usuario) AS 'Usuario Recibe',
-                CONCAT(ue.nombre_usuario, ' ', ue.apellido_usuario) AS 'Usuario Entrega'
-            FROM movimiento AS m
-            JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-            JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
-            JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
-            JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
-            JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
-            JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+          SELECT 
+    m.Codigo_movimiento AS 'ID del Prestamo',
+    CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS 'Usuario',
+    m.fecha_movimiento AS 'Fecha del Prestamo',
+    tm.Nombre_movimiento AS 'Tipo de Movimiento',
+    dm.Observaciones AS 'Observaciones',
+    e.nombre_elemento AS 'Nombre del Elemento',
+    e.stock AS 'Stock',
+    dm.cantidad AS 'Cantidad',
+    CONCAT(ur.nombre_usuario, ' ', ur.apellido_usuario) AS 'Usuario Recibe',
+    CONCAT(ue.nombre_usuario, ' ', ue.apellido_usuario) AS 'Usuario Entrega',
+    b.Nombre_bodega AS 'Nombre_bodega',
+    du.Nombre_ubicacion AS 'Nombre_ubicacion'
+FROM 
+    movimiento AS m
+    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
+    JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
+    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
+    JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
+    JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
+    JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+    JOIN detalle_ubicacion AS du ON e.fk_detalleUbicacion = du.codigo_Detalle
+    JOIN bodega AS b ON du.fk_bodega = b.codigo_Bodega
+
         `;
 
         const [result] = await pool.query(sql);
 
         if (result.length > 0) {
-            return res.status(200).json({ message: "Historial de préstamos encontrados", datos: result });
+            return res.status(200).json({ message: "Historial de movimientos: ", datos: result });
         } else {
-            return res.status(404).json({ message: "No se encontraron historial de préstamos" });
+            return res.status(404).json({ message: "No se encontró historial de movimientos" });
         }
     } catch (error) {
-        return res.status(500).json({ message: "Error al obtener el historial de préstamos", error: error.message });
+        return res.status(500).json({ message: "Error al obtener el historial de movimientos", error: error.message });
     }
 };
 
