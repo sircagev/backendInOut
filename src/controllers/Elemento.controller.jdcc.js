@@ -117,7 +117,14 @@ export const BuscarElemento = async (req, res) => {
 export const ActualizarElemento = async (req, res) => {
     try {
         const id = req.params.id;
-        const { Nombre_elemento, stock, fk_tipoElemento, fk_categoria, fk_unidadMedida, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
+        const { Nombre_elemento, fk_tipoElemento, fk_categoria, fk_unidadMedida, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
+
+        // Obtener el valor actual de stock
+        const [elementoResult] = await pool.query('SELECT stock FROM elemento WHERE Codigo_elemento = ?', [id]);
+        if (elementoResult.length === 0) {
+            return res.status(400).json({ "Message": "Elemento no encontrado." });
+        }
+        const currentStock = elementoResult[0].stock;
 
         // Obtener codigo_categoria a partir del nombre_categoria
         const [categoriaResult] = await pool.query('SELECT codigo_categoria FROM categoria_elemento WHERE nombre_categoria = ?', [fk_categoria]);
@@ -134,9 +141,8 @@ export const ActualizarElemento = async (req, res) => {
         const codigo_Tipo = tipoElementoResult[0].codigo_Tipo;
 
         // Obtener codigo_medida a partir del Nombre_Medida
-        const [unidadMedidaResult] = await pool.query(`SELECT codigo_medida FROM unidad_medida WHERE Nombre_medida = ?`, [fk_unidadMedida]);
+        const [unidadMedidaResult] = await pool.query('SELECT codigo_medida FROM unidad_medida WHERE Nombre_medida = ?', [fk_unidadMedida]);
         if (unidadMedidaResult.length === 0) {
-            console.log(unidadMedidaResult);
             return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
         }
         const codigo_medida = unidadMedidaResult[0].codigo_medida;
@@ -171,7 +177,7 @@ export const ActualizarElemento = async (req, res) => {
 
         const [result] = await pool.query(sql, [
             Nombre_elemento, 
-            stock, 
+            currentStock,  // Usamos el valor actual de stock
             codigo_Tipo, 
             codigo_categoria, 
             codigo_medida,
@@ -190,6 +196,7 @@ export const ActualizarElemento = async (req, res) => {
         return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };
+
 
 
 
