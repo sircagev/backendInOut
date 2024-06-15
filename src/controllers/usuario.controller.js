@@ -1,20 +1,24 @@
 import {pool} from '../database/conexion.js';
 import { validationResult } from 'express-validator';
+import bcrypt from 'bcrypt';
+
 
 export const registrarUsuario = async (req, res) => {
     try {
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion, contraseña_usuario } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-        let contraseña_usuario = identificacion;
+        // Encriptar la contraseña
+        const saltRounds = 10; // Cost factor for bcrypt
+        const hashedPassword = await bcrypt.hash(contraseña_usuario, saltRounds);
 
-        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha,  identificacion)
-                    VALUES ('${nombre_usuario}', '${apellido_usuario}', '${email_usuario}', '${rol}', '${numero}', '${contraseña_usuario}', '${Id_ficha}', '${identificacion}')`;
+        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hashedPassword, Id_ficha, identificacion];
 
-        let [rows] = await pool.query(sql);
+        let [rows] = await pool.query(sql, values);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ 'message': 'Usuario Registrado con Éxito' });
@@ -24,7 +28,7 @@ export const registrarUsuario = async (req, res) => {
     } catch (e) {
         return res.status(500).json({ 'message': e.message });
     }
-}
+};
 
 
 
@@ -132,9 +136,9 @@ export const InicioSesion = async (req, res) => {
         const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
 
         if (rows.length > 0) {
-            return res.status(200).json({ 'message': 'Inicio de sesión exitoso' });
+            return res.status(200).json({ 'message': 'Inicio de sesión Exitoso' });
         } else {
-            return res.status(403).json({ 'message': 'Usuario o Contraseña incorrectos' });
+            return res.status(403).json({ 'message': 'Usuario o Contraseña Incorrectos' });
         }
     } catch (error) {
         return res.status(500).json({ 'message': error.message });
