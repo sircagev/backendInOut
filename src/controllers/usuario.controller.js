@@ -5,9 +5,6 @@ export const registrarUsuario = async (req, res) => {
     try {
         let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json(errors);
-
         // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
         let contraseña_usuario = identificacion;
 
