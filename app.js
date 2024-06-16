@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import routeBodega from "./src/routes/Bodegas.Router.jeph.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 //Importaciones de rutas
 import movimientosRoute from './src/routes/Movimientos.routes.js'
@@ -18,17 +20,31 @@ import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
 import RouteContraseña from "./src/routes/password.router.js"
 
 
+// Definir __dirname manualmente
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 //Configuración
 app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Rutas
-app.get('/',(req, res) => {
+app.get('/', (req, res) => {
     res.send('pagina Inicial')
 });
+
+/* app.get('/documents',(req, res) => {
+    res.send(documents)
+}); */
+
+app.get('/documents', (req, res) => {
+    const documentsPath = path.join(__dirname, 'src', 'pages', 'documents.html');
+    res.sendFile(documentsPath);
+});
+
 app.use('/bodega', routeBodega);
 
 app.use('/tipo', RouteTipoElemento);
@@ -45,6 +61,6 @@ app.use('/contrasena', RouteContraseña);
 
 
 //Servidor
-app.listen(3000, ()=>{
+app.listen(3000, () => {
     console.log('El servidor se esta ejecutando en el puerto 3000');
 })
