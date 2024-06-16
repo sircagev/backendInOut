@@ -1,22 +1,26 @@
 import {pool} from '../database/conexion.js';
 import { validationResult } from 'express-validator';
-import bcrypt from 'bcrypt';
-
+import crypto from 'crypto';
 
 export const registrarUsuario = async (req, res) => {
     try {
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion, contraseña_usuario } = req.body;
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
-        // Encriptar la contraseña
-        const saltRounds = 10; // Cost factor for bcrypt
-        const hashedPassword = await bcrypt.hash(contraseña_usuario, saltRounds);
+        // Verificar si el correo ya existe
+        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ?';
+        let [emailRows] = await pool.query(checkEmailSql, [email_usuario]);
+
+        if (emailRows[0].count > 0) {
+            return res.status(400).json({ 'message': 'El correo ya está registrado' });
+        }
+        const hash = crypto.createHash('sha256').update(identificacion).digest('hex').substr(0, 32); 
 
         let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hashedPassword, Id_ficha, identificacion];
+        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hash, Id_ficha, identificacion];
 
         let [rows] = await pool.query(sql, values);
 
@@ -31,13 +35,12 @@ export const registrarUsuario = async (req, res) => {
 };
 
 
-
 export const ListarUsuario = async(req, res) =>{
 
     let[result] = await pool.query('select *from usuario')
 
     if(result.length>0){
-        return res.status(200).json({result});
+        return res.status(200).json(result);
     }
     else{
        return res.status(403).json({'message': 'No existen Usuarios Registrados'});            
@@ -150,14 +153,36 @@ export const DesactivarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sql = `UPDATE usuario SET Estado = 'Inactivo' WHERE id_usuario = ?`;
+        // Consulta SQL para obtener el estado actual de la ubicación
+        const sqlGetEstado = `SELECT Estado FROM usuario WHERE id_usuario = ?`;
+        const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        const [result] = await pool.query(sql, [id]);
+        // Verificar si se encontró la ubicación
+        if (estadoResult.length === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado." });
+        }
+
+        const estadoActual = estadoResult[0].Estado;
+        let nuevoEstado;
+
+        // Determinar el nuevo estado según el estado actual
+        if (estadoActual === 'Activo') {
+            nuevoEstado = 'Inactivo';
+        } else if (estadoActual === 'Inactivo') {
+            nuevoEstado = 'Activo';
+        } else {
+            // En caso de un estado no esperado, mantener el estado actual
+            nuevoEstado = estadoActual;
+        }
+
+        // Actualizar el estado en la base de datos
+        const sqlUpdateEstado = `UPDATE usuario SET Estado = ? WHERE id_usuario = ?`;
+        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: "Usuario desactivado con éxito." });
+            return res.status(200).json({ message: `usuario actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Usuario no desactivado." });
+            return res.status(404).json({ "message": "usuario no actualizado." });
         }
 
     } catch (error) {
