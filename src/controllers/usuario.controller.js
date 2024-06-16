@@ -1,17 +1,30 @@
 import {pool} from '../database/conexion.js';
 import { validationResult } from 'express-validator';
+import crypto from 'crypto';
 
 export const registrarUsuario = async (req, res) => {
     try {
         let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json(errors);
+
+        // Verificar si el correo ya existe
+        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ?';
+        let [emailRows] = await pool.query(checkEmailSql, [email_usuario]);
         // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-        let contraseña_usuario = identificacion;
 
-        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha,  identificacion)
-                    VALUES ('${nombre_usuario}', '${apellido_usuario}', '${email_usuario}', '${rol}', '${numero}', '${contraseña_usuario}', '${Id_ficha}', '${identificacion}')`;
+        if (emailRows[0].count > 0) {
+            return res.status(400).json({ 'message': 'El correo ya está registrado' });
+        }
+        const hash = crypto.createHash('sha256').update(identificacion).digest('hex').substr(0, 32); 
 
-        let [rows] = await pool.query(sql);
+        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hash, Id_ficha, identificacion];
+
+        let [rows] = await pool.query(sql, values);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ 'message': 'Usuario Registrado con Éxito' });
@@ -21,8 +34,7 @@ export const registrarUsuario = async (req, res) => {
     } catch (e) {
         return res.status(500).json({ 'message': e.message });
     }
-}
-
+};
 
 
 export const ListarUsuario = async(req, res) =>{
@@ -129,9 +141,9 @@ export const InicioSesion = async (req, res) => {
         const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
 
         if (rows.length > 0) {
-            return res.status(200).json({ 'message': 'Inicio de sesión exitoso' });
+            return res.status(200).json({ 'message': 'Inicio de sesión Exitoso' });
         } else {
-            return res.status(403).json({ 'message': 'Usuario o Contraseña incorrectos' });
+            return res.status(403).json({ 'message': 'Usuario o Contraseña Incorrectos' });
         }
     } catch (error) {
         return res.status(500).json({ 'message': error.message });
