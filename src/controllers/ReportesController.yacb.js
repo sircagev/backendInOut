@@ -234,12 +234,25 @@ export const ReporteMovimientosPorTipo = async (req, res) => {
 export const ReporteMovimientosPorUsuario = async (req, res) => {
     try {
         const sql = `SELECT 
-                        CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS "Usuario",
-                        COUNT(*) AS "Cantidad de Movimientos"
-                    FROM detalle_movimiento AS dm 
-                    JOIN movimiento AS m ON dm.fk_movimiento = m.Codigo_movimiento
-                    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-                    GROUP BY u.nombre_usuario, u.apellido_usuario`;
+            u.rol AS Rol,
+            u.numero AS Numero,
+            u.id_ficha AS ID_Ficha,
+            CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS Nombre_Usuario,
+            m.usuario_solicitud AS Usuario_Solicitud,
+            dm.fecha_vencimiento AS Fecha_de_Entrega,
+            dm.fecha_creacion AS Fecha_de_Solicitud,
+            dm.Observaciones AS Observaciones,
+            dm.cantidad AS Cantidad,
+            e.Nombre_elemento AS Elemento
+        FROM 
+            usuario u
+        JOIN 
+            movimiento m ON u.id_usuario = m.Usuario_solicitud
+        JOIN 
+            detalle_movimiento dm ON m.Codigo_movimiento = dm.fk_movimiento
+        JOIN 
+            elemento e ON dm.fk_elemento = e.Codigo_elemento;
+        `;
 
         const [result] = await pool.query(sql);
 
@@ -288,19 +301,28 @@ export const ReporteMovimientosPorFecha = async (req, res) => {
 //Modulo movimientos
 //movimientos activos
 
-
 export const ReportePrestamosActivos = async (req, res) => {
     try {
         const sql = `SELECT 
-        Codigo_movimiento AS 'ID del Prestamo',
-        CONCAT(nombre_usuario, ' ', apellido_usuario) AS 'Usuario',
-        Nombre_elemento AS 'Elemento',
-        fecha_movimiento AS 'Fecha del Prestamo'
-    FROM movimiento AS m
-    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-    JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
-    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
-    WHERE m.Estado = 'En Prestamo'`;
+            dm.fecha_vencimiento AS "Fecha de entrega",
+            dm.fecha_creacion AS "Fecha de solicitud",
+            dm.estado AS "Estado",
+            CONCAT(u_recibe.nombre_usuario, ' ', u_recibe.apellido_usuario) AS "Solicitado por",
+            CONCAT(u_entrega.nombre_usuario, ' ', u_entrega.apellido_usuario) AS "Autorizado por",
+            dm.Observaciones,
+            dm.cantidad,
+            e.Nombre_elemento AS "Elemento"
+        FROM 
+            detalle_movimiento dm
+        JOIN 
+            usuario u_recibe ON dm.Usuario_recibe = u_recibe.id_usuario
+        JOIN 
+            usuario u_entrega ON dm.Usuario_entrega = u_entrega.id_usuario
+        JOIN 
+            elemento e ON dm.fk_elemento = e.Codigo_elemento
+        WHERE 
+            dm.estado IN ('En Prestamo', 'Confirmada');
+            `;
 
         const [result] = await pool.query(sql);
 
@@ -315,61 +337,34 @@ export const ReportePrestamosActivos = async (req, res) => {
 }
 
 
-//estado de todos los movimientos
-
-export const ReporteEstadoPrestamos = async (req, res) => {
-    try {
-        const sql = `SELECT 
-        Codigo_movimiento AS 'ID del Prestamo',
-        CONCAT(nombre_usuario, ' ', apellido_usuario) AS 'Usuario',
-        Nombre_elemento AS 'Elemento',
-        m.Estado AS 'Estado del Prestamo'
-    FROM movimiento AS m
-    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-    JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
-    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento`;
-
-        const [result] = await pool.query(sql);
-
-        if (result.length > 0) {
-            return res.status(200).json({ message: "Estado de prestamos encontrados", datos: result });
-        } else {
-            return res.status(404).json({ message: "No se encontraron prestamos" });
-        }
-    } catch (error) {
-        return res.status(500).json({ message: error });
-    }
-}
-
-
 //historial de todos los movimientos
 
 export const ReporteHistorialPrestamos = async (req, res) => {
     try {
         const sql = `
           SELECT 
-    m.Codigo_movimiento AS 'ID del Prestamo',
-    CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS 'Usuario',
-    m.fecha_movimiento AS 'Fecha del Prestamo',
-    tm.Nombre_movimiento AS 'Tipo de Movimiento',
-    dm.Observaciones AS 'Observaciones',
-    e.nombre_elemento AS 'Nombre del Elemento',
-    e.stock AS 'Stock',
-    dm.cantidad AS 'Cantidad',
-    CONCAT(ur.nombre_usuario, ' ', ur.apellido_usuario) AS 'Usuario Recibe',
-    CONCAT(ue.nombre_usuario, ' ', ue.apellido_usuario) AS 'Usuario Entrega',
-    b.Nombre_bodega AS 'Nombre_bodega',
-    du.Nombre_ubicacion AS 'Nombre_ubicacion'
-FROM 
-    movimiento AS m
-    JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-    JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
-    JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
-    JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
-    JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
-    JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
-    JOIN detalle_ubicacion AS du ON e.fk_detalleUbicacion = du.codigo_Detalle
-    JOIN bodega AS b ON du.fk_bodega = b.codigo_Bodega
+        m.Codigo_movimiento AS 'ID del Prestamo',
+        CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS 'Usuario',
+        m.fecha_movimiento AS 'Fecha del Prestamo',
+        tm.Nombre_movimiento AS 'Tipo de Movimiento',
+        dm.Observaciones AS 'Observaciones',
+        e.nombre_elemento AS 'Nombre del Elemento',
+        e.stock AS 'Stock',
+        dm.cantidad AS 'Cantidad',
+        CONCAT(ur.nombre_usuario, ' ', ur.apellido_usuario) AS 'Usuario Recibe',
+        CONCAT(ue.nombre_usuario, ' ', ue.apellido_usuario) AS 'Usuario Entrega',
+        b.Nombre_bodega AS 'Nombre_bodega',
+        du.Nombre_ubicacion AS 'Nombre_ubicacion'
+    FROM 
+        movimiento AS m
+        JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
+        JOIN detalle_movimiento AS dm ON m.Codigo_movimiento = dm.fk_movimiento
+        JOIN elemento AS e ON dm.fk_elemento = e.Codigo_elemento
+        JOIN usuario AS ur ON dm.Usuario_recibe = ur.id_usuario
+        JOIN usuario AS ue ON dm.Usuario_entrega = ue.id_usuario
+        JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
+        JOIN detalle_ubicacion AS du ON e.fk_detalleUbicacion = du.codigo_Detalle
+        JOIN bodega AS b ON du.fk_bodega = b.codigo_Bodega
 
         `;
 
