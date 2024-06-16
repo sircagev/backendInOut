@@ -6,12 +6,14 @@ export const registrarUsuario = async (req, res) => {
     try {
         let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
+
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
         // Verificar si el correo ya existe
         let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ?';
         let [emailRows] = await pool.query(checkEmailSql, [email_usuario]);
+        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
 
         if (emailRows[0].count > 0) {
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
