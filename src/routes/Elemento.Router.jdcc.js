@@ -1,15 +1,15 @@
 import { Router } from "express";
+import { validarToken } from "../controllers/validator.controller.js";
 import { RegistrarElemento, AñadirStock, ListarElemetos, BuscarElemento, ActualizarElemento, EliminarElemento, DesactivarElementos} from "../controllers/Elemento.controller.jdcc.js";
-import { validarUsuario } from "../controllers/validator.controller.js"
 
 const route = Router();
 
-route.post('/registrar', RegistrarElemento);
-route.put('/aniadir/:id', AñadirStock);
-route.get('/listar', ListarElemetos);
-route.get('/buscar/:id', BuscarElemento);
-route.put('/actualizar/:id', ActualizarElemento);
-route.delete('/eliminar/:id', EliminarElemento);
-route.put('/desactivar/:id', DesactivarElementos);
+route.post('/registrar', validarToken, RegistrarElemento);
+route.put('/aniadir/:id', validarToken, AñadirStock);
+route.get('/listar', validarToken, ListarElemetos);
+route.get('/buscar/:id', validarToken, BuscarElemento);
+route.put('/actualizar/:id', validarToken, ActualizarElemento);
+route.delete('/eliminar/:id', validarToken, EliminarElemento);
+route.put('/desactivar/:id', validarToken, DesactivarElementos);
 
 export default route;
