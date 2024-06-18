@@ -31,7 +31,6 @@ export const ListarEmpaque = async (req, res) => {
     }
 };
 
-
 export const BuscarEmpaque = async (req, res) => {
     try {
         let id = req.params.id;
@@ -117,4 +116,3 @@ export const DesactivarEmpaque = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-

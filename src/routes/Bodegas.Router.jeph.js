@@ -10,5 +10,4 @@ route.get('/buscar/:id', validarToken, BuscarBodega)
 route.put('/actualizar/:id', validarToken, ActualizarBodega);
 route.put('/desactivar/:id', validarToken, DesactivarBodega);
 
-
 export default route;

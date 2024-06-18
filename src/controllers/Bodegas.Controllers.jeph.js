@@ -41,7 +41,6 @@ export const listarBodegas = async(req, res) => {
     }
 };
 
-
 export const BuscarBodega = async (req, res) => {
     try {
         let id = req.params.id;

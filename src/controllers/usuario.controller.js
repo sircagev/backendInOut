@@ -19,6 +19,15 @@ export const registrarUsuario = async (req, res) => {
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
 
+        // Verificar si el correo ya existe
+        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ?';
+        let [emailIdentification] = await pool.query(checkIdentification, [identificacion]);
+        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
+
+        if (emailIdentification[0].count > 0) {
+            return res.status(400).json({ 'message': 'La identificación ya está registrada' });
+        }
+
         // Encriptar la identificación para usarla como contraseña
         const contraseniaForHash = identificacion.toString()
         const saltRounds = 10; // Cost factor for bcrypt
@@ -40,33 +49,32 @@ export const registrarUsuario = async (req, res) => {
     }
 };
 
+export const ListarUsuario = async (req, res) => {
 
-export const ListarUsuario = async(req, res) =>{
+    let [result] = await pool.query('select *from usuario')
 
-    let[result] = await pool.query('select *from usuario')
-
-    if(result.length>0){
+    if (result.length > 0) {
         return res.status(200).json(result);
     }
-    else{
-       return res.status(403).json({'message': 'No existen Usuarios Registrados'});            
+    else {
+        return res.status(403).json({ 'message': 'No existen Usuarios Registrados' });
     }
 }
 
-export const EliminarUsuario= async(req, res) => {
+export const EliminarUsuario = async (req, res) => {
 
     let id_usuario = req.params.id;
     let sql = `delete from usuario where id_usuario = ${id_usuario}`;
-    
-    let[rows]= await pool.query(sql);
 
-    if(rows.affectedRows){
-            return res.status(200).json({'message': 'Usuarios Eliminado con exito'});
-        }
-        else{
-           return res.status(403).json({'message': 'Usuarios no elimiado con exito'});            
-        }
+    let [rows] = await pool.query(sql);
+
+    if (rows.affectedRows) {
+        return res.status(200).json({ 'message': 'Usuarios Eliminado con exito' });
     }
+    else {
+        return res.status(403).json({ 'message': 'Usuarios no elimiado con exito' });
+    }
+}
 
 export const BuscarUsuario = async (req, res) => {
     try {
@@ -90,12 +98,29 @@ export const BuscarUsuario = async (req, res) => {
     }
 };
 
-
-export const ActualizarUsuario= async(req, res) =>{
-    try{
+export const ActualizarUsuario = async (req, res) => {
+    try {
 
         let id_usuario = req.params.id;
-        let{nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion}= req.body;
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion } = req.body;
+
+        // Verificar si el correo ya existe
+        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ? AND id_usuario != ?';
+        let [emailRows] = await pool.query(checkEmailSql, [email_usuario, id_usuario]);
+        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
+
+        if (emailRows[0].count > 0) {
+            return res.status(400).json({ 'message': 'El correo ya está registrado' });
+        }
+
+        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ? AND id_usuario != ?';
+        let [emailIdentification] = await pool.query(checkIdentification, [identificacion, id_usuario]);
+        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
+
+        if (emailIdentification[0].count > 0) {
+            return res.status(400).json({ 'message': 'La identificación ya está registrada' });
+        }
+
         let sql = `UPDATE usuario SET nombre_usuario = ?,
                                        apellido_usuario = ?,
                                        email_usuario = ?,
@@ -105,36 +130,36 @@ export const ActualizarUsuario= async(req, res) =>{
                                        Id_ficha = ?,
                                        identificacion = ?
                                        WHERE id_usuario = ?`
-    
-        let[rows] = await pool.query(sql, [nombre_usuario,apellido_usuario,email_usuario,rol,numero,contraseña_usuario,Id_ficha, identificacion, id_usuario]);
 
-        if(rows.affectedRows){
-            return res.status(200).json({'message': 'Usuario actualizado con exito'});
+        let [rows] = await pool.query(sql, [nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion, id_usuario]);
+
+        if (rows.affectedRows) {
+            return res.status(200).json({ 'message': 'Usuario actualizado con exito' });
         }
-        else{
-           return res.status(403).json({'message': 'Usuarios No actualizado'});            
+        else {
+            return res.status(403).json({ 'message': 'Usuarios No actualizado' });
         }
     }
-    catch(e){
-        return res.status(500).json({'message': e.message});  
+    catch (e) {
+        return res.status(500).json({ 'message': e.message });
     }
 
 }
 
-export const EstadoUsuario = async(req, res)=>{
+export const EstadoUsuario = async (req, res) => {
 
     let id_usuario = req.params.id;
-    let{Estado} = req.body;
+    let { Estado } = req.body;
     let sql = `UPDATE usuario SET Estado = ?
                  WHERE id_usuario = ?`
 
-    let[rows]= await pool.query(sql, [Estado, id_usuario]);
+    let [rows] = await pool.query(sql, [Estado, id_usuario]);
 
-    if(rows.affectedRows){
-        return res.status(200).json({'message': 'Estado Actualizado con Exito'});
+    if (rows.affectedRows) {
+        return res.status(200).json({ 'message': 'Estado Actualizado con Exito' });
     }
-    else{
-       return res.status(403).json({'message': 'Estado no Actualizado'});            
+    else {
+        return res.status(403).json({ 'message': 'Estado no Actualizado' });
     }
 }
 
@@ -153,7 +178,6 @@ export const InicioSesion = async (req, res) => {
         return res.status(500).json({ 'message': error.message });
     }
 }
-
 
 export const DesactivarUsuario = async (req, res) => {
     try {
@@ -195,7 +219,3 @@ export const DesactivarUsuario = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
-
-
-

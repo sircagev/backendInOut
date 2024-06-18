@@ -32,7 +32,6 @@ export const ListarMedida = async (req, res) => {
     }
 };
 
-
 export const Buscarmedida = async (req, res) => {
     try {
         let id = req.params.id;
@@ -122,4 +121,3 @@ export const DesactivarMedida = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-

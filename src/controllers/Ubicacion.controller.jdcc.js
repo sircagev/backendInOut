@@ -44,10 +44,6 @@ export const ListarUbicacion = async (req, res) => {
     }
 };
 
-
-
-
-
 export const BuscarUbicacion = async (req, res) => {
     try {
         let id = req.params.id;
@@ -104,7 +100,6 @@ export const ActualizarUbicacion = async (req, res) => {
         return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };
-
 
 export const EliminarUbicacion = async (req, res) => {
     try {
