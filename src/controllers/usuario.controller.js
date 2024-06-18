@@ -20,8 +20,9 @@ export const registrarUsuario = async (req, res) => {
         }
 
         // Encriptar la identificación para usarla como contraseña
+        const contraseniaForHash = identificacion.toString()
         const saltRounds = 10; // Cost factor for bcrypt
-        const hashedPassword = await bcrypt.hash(identificacion, saltRounds);
+        const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
         let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
