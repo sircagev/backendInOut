@@ -31,7 +31,6 @@ export const ListarTipo = async (req, res) => {
     }
 };
 
-
 export const BuscarTipo = async (req, res) => {
     try {
         let id = req.params.id;

@@ -47,7 +47,6 @@ export const validarUsuario = async (req, res) => {
   }
 };
 
-
 export const validarToken = async (req, res, next) => {
   try {
     let token_Cliente = req.headers['token'];

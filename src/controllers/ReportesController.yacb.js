@@ -183,10 +183,8 @@ export const PrestamosActivosModal = async (req, res) => {
       return res.status(500).json({ message: error.message });
     }
   };
-  
 
-//historial de todos los movimientos
-
+  //historial de todos los movimientos
 export const ReporteHistorialMovimientos = async (req, res) => {
   try {
     const sql = `

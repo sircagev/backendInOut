@@ -44,7 +44,6 @@ export const AñadirStock = async (req, res) => {
     }
 }
 
-
 export const ListarElemetos = async (req, res) => {
     try {
         let [result] = await pool.query(
@@ -84,8 +83,6 @@ export const ListarElemetos = async (req, res) => {
         return res.status(500).json({ message: 'Error al listar elementos', error: error.message });
     }
 };
-
-
 
 export const BuscarElemento = async (req, res) => {
     try {
@@ -196,9 +193,6 @@ export const ActualizarElemento = async (req, res) => {
         return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };
-
-
-
 
 export const EliminarElemento = async (req, res) => {
     try {

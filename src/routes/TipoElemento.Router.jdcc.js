@@ -11,5 +11,4 @@ route.put('/actualizar/:id', validarToken, ActualizarTipo);
 route.delete('/eliminar/:id', validarToken, EliminarTipo);
 route.put('/desactivar/:id', validarToken, DesactivarTipo);
 
-
 export default route;

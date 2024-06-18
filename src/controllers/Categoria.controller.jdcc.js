@@ -31,8 +31,6 @@ export const ListarCategoria = async (req, res) => {
     }
 };
 
-
-
 export const BuscarCategoria = async (req, res) => {
     try {
         let id = req.params.id;
