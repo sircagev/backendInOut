@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 export const validarUsuario = async (req, res) => {
   try {
     let { email_usuario, contraseña_usuario } = req.body;
+    
     let sql = `SELECT id_usuario, nombre_usuario, apellido_usuario, rol, numero, Id_ficha, Estado 
                FROM usuario 
                WHERE email_usuario = '${email_usuario}' AND contraseña_usuario = '${contraseña_usuario}'`;

@@ -1,6 +1,6 @@
-import {pool} from '../database/conexion.js';
+import { pool } from '../database/conexion.js';
 import { validationResult } from 'express-validator';
-import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 export const registrarUsuario = async (req, res) => {
     try {
@@ -18,11 +18,14 @@ export const registrarUsuario = async (req, res) => {
         if (emailRows[0].count > 0) {
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
-        const hash = crypto.createHash('sha256').update(identificacion).digest('hex').substr(0, 32); 
+
+        // Encriptar la identificación para usarla como contraseña
+        const saltRounds = 10; // Cost factor for bcrypt
+        const hashedPassword = await bcrypt.hash(identificacion, saltRounds);
 
         let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hash, Id_ficha, identificacion];
+        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hashedPassword, Id_ficha, identificacion];
 
         let [rows] = await pool.query(sql, values);
 
