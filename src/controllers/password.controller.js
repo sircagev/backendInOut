@@ -1,6 +1,7 @@
 import { pool } from "../database/conexion.js"
 import jwt from "jsonwebtoken"
 import nodemailer from "nodemailer"
+import bcrypt from "bcrypt"
 
 const tokenPassword = async (peticion, respuesta) => {
     try {
@@ -67,9 +68,13 @@ const resetPassword = async (peticion, respuesta) => {
                 "message": "Usuario no encontrado"
             });
         }
+        // Encriptar la identificación para usarla como contraseña
+        const contraseniaForHash = contraseña_usuario.toString()
+        const saltRounds = 10; // Cost factor for bcrypt
+        const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
         const sqlUpdate = "UPDATE usuario SET contraseña_usuario = ? WHERE id_usuario = ?";
-        const [actualizar] = await pool.query(sqlUpdate, [contraseña_usuario, user]);
+        const [actualizar] = await pool.query(sqlUpdate, [hashedPassword, user]);
 
         if (actualizar.affectedRows > 0) {
             return respuesta.status(200).json({
