@@ -102,7 +102,7 @@ export const ActualizarUsuario = async (req, res) => {
     try {
 
         let id_usuario = req.params.id;
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion } = req.body;
+        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
         // Verificar si el correo ya existe
         let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ? AND id_usuario != ?';
@@ -126,12 +126,11 @@ export const ActualizarUsuario = async (req, res) => {
                                        email_usuario = ?,
                                        rol = ?,
                                        numero = ?,
-                                       contraseña_usuario = ?,
                                        Id_ficha = ?,
                                        identificacion = ?
                                        WHERE id_usuario = ?`
 
-        let [rows] = await pool.query(sql, [nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion, id_usuario]);
+        let [rows] = await pool.query(sql, [nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion, id_usuario]);
 
         if (rows.affectedRows) {
             return res.status(200).json({ 'message': 'Usuario actualizado con exito' });
@@ -143,7 +142,6 @@ export const ActualizarUsuario = async (req, res) => {
     catch (e) {
         return res.status(500).json({ 'message': e.message });
     }
-
 }
 
 export const EstadoUsuario = async (req, res) => {

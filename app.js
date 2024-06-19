@@ -5,6 +5,7 @@ import bodyParser from 'body-parser'
 import routeBodega from "./src/routes/Bodegas.Router.jeph.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
+import cookieParser from 'cookie-parser';
 
 //Importaciones de rutas
 import movimientosRoute from './src/routes/Movimientos.routes.js'
@@ -27,7 +28,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 //Configuración
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+    origin: true, //Permitir cualquier origen
+    credentials: true //Permitir el uso de cookies
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
