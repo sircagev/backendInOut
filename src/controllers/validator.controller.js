@@ -48,17 +48,15 @@ export const validarUsuario = async (req, res) => {
 };
 
 export const validarToken = async (req, res, next) => {
+  let token_Cliente = req.headers['token'];
+  if (!token_Cliente) {
+    return res.status(402).json({ "msg": "token requerido" });
+  }
   try {
-    let token_Cliente = req.headers['token'];
-    if (!token_Cliente) {
-      return res.status(402).json({ "msg": "token requerido" });
-    } else {
-      let decode = jwt.verify(token_Cliente, process.env.SECRET_KEY, (error, decoded) => {
-        if (error) return res.status(402).json({ "msg": "token inválido" });
-        else next();
-      });
-    }
+    const decoded = jwt.verify(token_Cliente, process.env.SECRET_KEY);
+    req.user = decoded;
+    next();
   } catch (e) {
-    return res.status(500).json({ "msg": e.message })
+    return res.status(401).json({ message: 'Token no válido', error: e.message });
   }
 };
