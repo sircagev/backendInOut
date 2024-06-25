@@ -104,22 +104,6 @@ export const ActualizarUsuario = async (req, res) => {
         let id_usuario = req.params.id;
         let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
 
-        // Verificar si el correo ya existe
-        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ? AND id_usuario != ?';
-        let [emailRows] = await pool.query(checkEmailSql, [email_usuario, id_usuario]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-
-        if (emailRows[0].count > 0) {
-            return res.status(400).json({ 'message': 'El correo ya está registrado' });
-        }
-
-        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ? AND id_usuario != ?';
-        let [emailIdentification] = await pool.query(checkIdentification, [identificacion, id_usuario]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-
-        if (emailIdentification[0].count > 0) {
-            return res.status(400).json({ 'message': 'La identificación ya está registrada' });
-        }
 
         let sql = `UPDATE usuario SET nombre_usuario = ?,
                                        apellido_usuario = ?,
