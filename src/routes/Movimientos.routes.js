@@ -1,5 +1,13 @@
 import { Router } from "express";
-import { BuscarMovimiento, ListarTodosMovimientos, RegistrarMovimientoPrestamo, ListarDetallesMovimiento, RegistrarMovimientoIngreso, RegistrarDetalleMovimiento } from "../controllers/MovimientosController.js";
+import { 
+    BuscarMovimiento, 
+    ListarTodosMovimientos, 
+    RegistrarMovimientoPrestamo, 
+    ListarDetallesMovimiento, 
+    RegistrarMovimientoIngreso, 
+    RegistrarDetalleMovimiento,
+    ActualizarDetalleMovimiento 
+} from "../controllers/MovimientosController.js";
 
 const route = Router();
 
@@ -10,6 +18,8 @@ route.post('/registrar', RegistrarMovimientoPrestamo);
 
 route.post('/aniadirStock', RegistrarMovimientoIngreso);
 
-route.post('/:id/aniadirDetalle', RegistrarDetalleMovimiento)
+route.post('/:id/aniadirDetalle', RegistrarDetalleMovimiento);
+
+route.put('/actualizarDetalle/:id', ActualizarDetalleMovimiento);
 
 export default route;

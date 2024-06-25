@@ -20,11 +20,24 @@ export const validarUsuario = async (req, res) => {
         // Verificar si el estado del usuario es "Activo"
         if (user.Estado === 'Activo') {
           // Generar token
-          let token = jwt.sign({ userId: user.id_usuario }, process.env.SECRET_KEY, {
+          let token = jwt.sign({
+            id: user.id_usuario,
+            role: user.rol,
+            name: user.nombre_usuario,
+            lastname: user.apellido_usuario,
+            email: email_usuario,
+            phone: user.numero
+          }, process.env.SECRET_KEY, {
             expiresIn: process.env.TIME,
           });
 
-          // Devolver nombre de usuario, rol y token
+          res.cookie('InOutToken', token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 1000 * 60 * 60 * 2, // 2 horas
+            path: '/'
+          });
+
           return res.status(200).json({
             message: "Usuario autenticado",
             token,
@@ -43,7 +56,11 @@ export const validarUsuario = async (req, res) => {
       return res.status(404).json({ message: "Usuario no autenticado" });
     }
   } catch (e) {
-    return res.status(500).json({ message: e.message });
+    console.log(e)
+    return res.status(500).json({
+      message: e.message,
+      error: "No se que paso"
+    });
   }
 };
 
