@@ -54,8 +54,8 @@ export const stockMinElementos = async (req, res) => {
 
 // Stock mínimo de elementos para el modal
 export const stockMinModal = async (req, res) => {
-    try {
-      const sql = `
+  try {
+    const sql = `
         SELECT 
           COUNT(*) AS Total
         FROM 
@@ -66,24 +66,27 @@ export const stockMinModal = async (req, res) => {
           e.Estado = 'Activo' 
           AND e.stock < 10;
       `;
-  
-      const [rows] = await pool.query(sql);
-  
-      if (rows.length > 0) {
-        const cantidadResultados = rows[0].Total;
-        return res.status(200).json(cantidadResultados);
-      } else {
-        return res.status(404).json({ message: "No hay elementos con bajo Stock por el momento" });
-      }
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
+
+    const [rows] = await pool.query(sql);
+
+    if (rows.length > 0) {
+      const cantidadResultados = rows[0].Total;
+      return res.status(200).json(cantidadResultados);
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No hay elementos con bajo Stock por el momento" });
     }
-  };
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 // reporte por usuario
 export const ReporteSolicitudesUsuario = async (req, res) => {
   try {
     const sql = `SELECT 
+            u.id_usuario AS ID_Usuario,
             u.rol AS Rol,
             u.numero AS Numero,
             u.id_ficha AS ID_Ficha,
@@ -119,6 +122,7 @@ export const ReporteSolicitudesUsuario = async (req, res) => {
     return res.status(500).json({ message: error });
   }
 };
+
 
 //Modulo movimientos
 //movimientos activos
@@ -164,27 +168,76 @@ export const ReportePrestamosActivos = async (req, res) => {
 
 //Prestamos activos para modal
 export const PrestamosActivosModal = async (req, res) => {
-    try {
-      const sql = `
+  try {
+    const sql = `
         SELECT COUNT(*) AS cantidadPrestamosActivos
         FROM detalle_movimiento dm
         WHERE dm.estado = 'En Prestamo';
       `;
-  
-      const [result] = await pool.query(sql);
-  
-      if (result.length > 0) {
-        const cantidadResultados = result[0].cantidadPrestamosActivos;
-        return res.status(200).json(cantidadResultados);
-      } else {
-        return res.status(404).json({ message: "No se encontraron préstamos activos" });
-      }
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  };
 
-  //historial de todos los movimientos
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      const cantidadResultados = result[0].cantidadPrestamosActivos;
+      return res.status(200).json(cantidadResultados);
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No se encontraron préstamos activos" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+
+//Reporte de todos los prestamos
+
+export const ReporteTodosPrestamos = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+          dm.fecha_vencimiento AS "Fecha de entrega",
+          dm.fecha_creacion AS "Fecha de solicitud",
+          dm.estado AS "Estado",
+          CONCAT(u_recibe.nombre_usuario, ' ', u_recibe.apellido_usuario) AS "Solicitado por",
+          CONCAT(u_entrega.nombre_usuario, ' ', u_entrega.apellido_usuario) AS "Autorizado por",
+          dm.Observaciones,
+          dm.cantidad,
+          e.Nombre_elemento AS "Elemento",
+          b.Nombre_bodega AS "Nombre de Bodega",
+          e.Codigo_elemento AS "Codigo de Elemento"
+      FROM 
+          detalle_movimiento dm
+      JOIN 
+          usuario u_recibe ON dm.Usuario_recibe = u_recibe.id_usuario
+      JOIN 
+          usuario u_entrega ON dm.Usuario_entrega = u_entrega.id_usuario
+      JOIN 
+          elemento e ON dm.fk_elemento = e.Codigo_elemento
+      JOIN 
+          detalle_ubicacion du ON e.fk_detalleUbicacion = du.Codigo_detalle
+      JOIN 
+          bodega b ON du.fk_bodega = b.Codigo_bodega;
+  
+    `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Todos los préstamos encontrados", datos: result });
+    } else {
+      return res.status(404).json({ message: "No se encontraron préstamos" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+
+//historial de todos los movimientos
 export const ReporteHistorialMovimientos = async (req, res) => {
   try {
     const sql = `
@@ -229,5 +282,86 @@ export const ReporteHistorialMovimientos = async (req, res) => {
       message: "Error al obtener el historial de movimientos",
       error: error.message,
     });
+  }
+};
+
+//Reporte elementos desactivados
+
+export const ReporteElementosDesactivados = async (req, res) => {
+  try {
+    const sql = `SELECT 
+            e.Codigo_elemento AS codigo,
+            e.Nombre_elemento AS nombre,
+            e.stock AS cantidad,
+            c.Nombre_Categoria AS categoria,
+            b.Nombre_bodega AS bodega
+        FROM 
+            elemento e
+        JOIN 
+            categoria_elemento c ON e.fk_categoria = c.codigo_Categoria
+        JOIN 
+            detalle_ubicacion du ON e.fk_detalleUbicacion = du.codigo_Detalle
+        JOIN 
+            bodega b ON du.fk_bodega = b.codigo_Bodega
+        WHERE 
+            e.Estado = 'Inactivo';
+
+        `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Reporte de Elementos Desactivados", datos: result });
+    } else {
+      return res.status(404).json({
+        message: "No se encontraron elementos para generar el reporte",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+//Reporte de todos lo elementos
+export const ReporteElementos = async (req, res) => {
+  try {
+    const sql = `SELECT 
+    e.Nombre_elemento,
+    e.Codigo_elemento,
+    e.stock,
+    ce.Nombre_Categoria,
+    du.Nombre_ubicacion,
+    e.fecha_creacion,
+    COUNT(dm.codigo_detalle) AS cantidad_en_prestamo,
+    GROUP_CONCAT(dm.observaciones SEPARATOR '; ') AS observaciones
+FROM 
+    elemento e
+LEFT JOIN 
+    detalle_movimiento dm ON e.Codigo_elemento = dm.fk_elemento AND dm.estado = 'en prestamo'
+LEFT JOIN 
+    detalle_ubicacion du ON e.fk_detalleUbicacion = du.codigo_Detalle
+LEFT JOIN 
+    categoria_elemento ce ON e.fk_categoria = ce.codigo_Categoria
+GROUP BY 
+    e.Nombre_elemento, e.Codigo_elemento, e.stock, ce.Nombre_Categoria, du.Nombre_ubicacion, e.fecha_creacion;
+
+
+        `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Reporte de Elementos", datos: result });
+    } else {
+      return res.status(404).json({
+        message: "No se encontraron elementos para generar el reporte",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
   }
 };
