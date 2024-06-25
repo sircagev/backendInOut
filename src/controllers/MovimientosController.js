@@ -35,26 +35,33 @@ export const ListarTodosMovimientos = async (req, res) => {
 export const BuscarMovimiento = async (req, res) => {
     try {
         let { id } = req.params;
-        
+
         const newId = id + '%'
 
         let sql = `SELECT 
                         m.Codigo_movimiento AS "Codigo",
                         m.fecha_movimiento AS "Fecha",
-                        CONCAT(u.nombre_usuario,' ',u.apellido_usuario) AS "Usuario",
+                        u.nombre_usuario AS "Usuario",
+                        u.apellido_usuario AS "Apellido",
+                        u.email_usuario AS "Correo",
+                        u.identificacion AS "Identificacion",
                         tm.Nombre_movimiento AS "Tipo",
                         m.Estado AS "Estado"
                     FROM movimiento AS m 
                     JOIN tipo_movimiento AS tm ON m.fk_movimiento = tm.codigo_tipo
                     JOIN usuario AS u ON m.Usuario_solicitud = u.id_usuario
-                    WHERE m.Codigo_movimiento LIKE ?
+                    WHERE (
+                        m.Codigo_movimiento LIKE ? || 
+                        u.nombre_usuario LIKE ? || 
+                        u.apellido_usuario LIKE ? || 
+                        u.identificacion LIKE ?)
                     ORDER BY Fecha DESC;`;
-        let [rows] = await pool.query(sql, [newId]);
+        let [rows] = await pool.query(sql, [newId, newId, newId, newId]);
 
         if (rows.length > 0) {
             return res.status(200).json({ "message": "Movimiento encontrado con éxito", Movimiento: rows });
         } else {
-            return res.status(404).json({ "message": "Movimiento no encontrado", Movimiento: []});
+            return res.status(404).json({ "message": "Movimiento no encontrado", Movimiento: [] });
         }
     } catch (error) {
         return res.status(500).json({ message: error });
@@ -153,9 +160,9 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
         const detallesInfo = [];
 
         for (const detalle of detalles) {
-            //Traer informacion de los detalles
+            //Traer información de los detalles
             const { fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones } = detalle;
-            
+
             //Insertar de a un detalle
             const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones) 
                                 VALUES (?,?,?,?,?,?,?,?)`;
@@ -176,14 +183,14 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
                     const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
                     const stockValues = [stockNuevo, fk_elemento];
                     const [responseStock] = await pool.query(stockSql, stockValues);
-                    
-                } else if(fk_movimiento == 2){
+
+                } else if (fk_movimiento == 2) {
                     const stockNuevo = parseInt(elementoRows[0].stock) - parseInt(cantidad);
 
                     const stockSql = `UPDATE elemento SET stock =? WHERE Codigo_Elemento =?`;
                     const stockValues = [stockNuevo, fk_elemento];
                     const [responseStock] = await pool.query(stockSql, stockValues);
-                    
+
                 }
             }
         };
@@ -215,5 +222,69 @@ export const RegistrarDetalleMovimiento = async (req, res) => {
         }
     } catch (error) {
         console.log(error);
+    }
+}
+
+export const ActualizarDetalleMovimiento = async (req, res) => {
+    try {
+        let { cantidad } = req.body;
+        let { id } = req.params;
+
+        // Iniciar una transacción en SQL
+        await pool.query("START TRANSACTION");
+
+        // Obtener el detalle original para conocer la cantidad y el elemento antes de la actualización
+        const sqlDetalleOriginal = `SELECT codigo_detalle, cantidad, fk_elemento, fk_movimiento FROM detalle_movimiento WHERE codigo_detalle = ?;`;
+        const [rowsDetalleOriginal] = await pool.query(sqlDetalleOriginal, [id]);
+        console.log(rowsDetalleOriginal)
+        if (rowsDetalleOriginal.length === 0) {
+            await pool.query("ROLLBACK");
+            return res.status(404).json({ message: "Detalle no encontrado" });
+        }
+
+        const detalleOriginal = rowsDetalleOriginal[0];
+        console.log(detalleOriginal)
+        const cantidadOriginal = detalleOriginal.cantidad;
+        const fk_elemento = detalleOriginal.fk_elemento;
+        const fk_movimiento = detalleOriginal.fk_movimiento;
+
+        const sqlMovementParent = `SELECT fk_movimiento FROM movimiento WHERE Codigo_movimiento = ?;`;
+        const [rowsMovementParent] = await pool.query(sqlMovementParent, [fk_movimiento]);
+        if (rowsMovementParent.length === 0) {
+            await pool.query("ROLLBACK");
+            return res.status(404).json({ message: "Detalle Padre no encontrado" });
+        }
+
+        const movementParent = rowsMovementParent[0]
+        const movementType = movementParent.fk_movimiento
+
+        // Actualizar la cantidad del detalle
+        const sqlActualizarDetalle = `UPDATE detalle_movimiento 
+                                      SET cantidad = ? 
+                                      WHERE codigo_detalle = ?`;
+        const valuesActualizarDetalle = [cantidad, id];
+        await pool.query(sqlActualizarDetalle, valuesActualizarDetalle);
+
+        // Ajustar el stock del elemento
+        const diferenciaCantidad = parseInt(cantidad) - parseInt(cantidadOriginal);
+
+        const sqlElemento = `SELECT stock FROM elemento WHERE Codigo_Elemento = ?`;
+        const [rowsElemento] = await pool.query(sqlElemento, [fk_elemento]);
+
+        if (rowsElemento.length > 0) {
+            const stockActual = parseInt(rowsElemento[0].stock);
+            const stockNuevo = movementType == 1
+                ? stockActual + diferenciaCantidad
+                : stockActual - diferenciaCantidad;
+
+            const sqlActualizarStock = `UPDATE elemento SET stock = ? WHERE Codigo_Elemento = ?`;
+            await pool.query(sqlActualizarStock, [stockNuevo, fk_elemento]);
+        }
+
+        await pool.query("COMMIT");
+        return res.status(200).json({ message: "Detalle actualizado exitosamente" });
+    } catch (error) {
+        await pool.query("ROLLBACK");
+        return res.status(500).json({ message: error.message });
     }
 }
