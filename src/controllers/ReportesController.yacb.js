@@ -44,7 +44,7 @@ export const stockMinElementos = async (req, res) => {
       return res.status(200).json(reporte);
     } else {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No hay elementos con bajo Stock por el momento" });
     }
   } catch (error) {
@@ -74,7 +74,7 @@ export const stockMinModal = async (req, res) => {
       return res.status(200).json(cantidadResultados);
     } else {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No hay elementos con bajo Stock por el momento" });
     }
   } catch (error) {
@@ -114,7 +114,7 @@ export const ReporteSolicitudesUsuario = async (req, res) => {
         .status(200)
         .json({ message: "Reporte de Movimientos por Usuario", datos: result });
     } else {
-      return res.status(404).json({
+      return res.status(200).json({
         message: "No se encontraron movimientos para generar el reporte",
       });
     }
@@ -158,7 +158,7 @@ export const ReportePrestamosActivos = async (req, res) => {
         .json({ message: "Prestamos activos encontrados", datos: result });
     } else {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No se encontraron prestamos activos" });
     }
   } catch (error) {
@@ -182,7 +182,7 @@ export const PrestamosActivosModal = async (req, res) => {
       return res.status(200).json(cantidadResultados);
     } else {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No se encontraron préstamos activos" });
     }
   } catch (error) {
@@ -229,7 +229,7 @@ export const ReporteTodosPrestamos = async (req, res) => {
         .status(200)
         .json({ message: "Todos los préstamos encontrados", datos: result });
     } else {
-      return res.status(404).json({ message: "No se encontraron préstamos" });
+      return res.status(200).json({ message: "No se encontraron préstamos" });
     }
   } catch (error) {
     return res.status(500).json({ message: error });
@@ -274,7 +274,7 @@ export const ReporteHistorialMovimientos = async (req, res) => {
         .json({ message: "Historial de movimientos: ", datos: result });
     } else {
       return res
-        .status(404)
+        .status(200)
         .json({ message: "No se encontró historial de movimientos" });
     }
   } catch (error) {
@@ -315,7 +315,7 @@ export const ReporteElementosDesactivados = async (req, res) => {
         .status(200)
         .json({ message: "Reporte de Elementos Desactivados", datos: result });
     } else {
-      return res.status(404).json({
+      return res.status(200).json({
         message: "No se encontraron elementos para generar el reporte",
       });
     }
@@ -357,7 +357,7 @@ GROUP BY
         .status(200)
         .json({ message: "Reporte de Elementos", datos: result });
     } else {
-      return res.status(404).json({
+      return res.status(200).json({
         message: "No se encontraron elementos para generar el reporte",
       });
     }
