@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   ReportePrestamosActivos,
+  PrestamosVencidos,
   ReporteTodosPrestamos,
   PrestamosActivosModal,
   ReporteHistorialMovimientos,
@@ -16,6 +17,7 @@ const route = Router();
 route.get("/solicitudesusuario", ReporteSolicitudesUsuario);
 route.get("/prestamosactivos", ReportePrestamosActivos);
 route.get("/prestamos", ReporteTodosPrestamos);
+route.get("/prestamosvencidos", PrestamosVencidos);
 route.get("/prestamosactivosmodal", PrestamosActivosModal);
 route.get("/movimientoshistorial", ReporteHistorialMovimientos);
 route.get("/stockminelementos", stockMinElementos);

@@ -123,7 +123,6 @@ export const ReporteSolicitudesUsuario = async (req, res) => {
   }
 };
 
-
 //Modulo movimientos
 //movimientos activos
 
@@ -147,7 +146,8 @@ export const ReportePrestamosActivos = async (req, res) => {
         JOIN 
             elemento e ON dm.fk_elemento = e.Codigo_elemento
         WHERE 
-            dm.estado IN ('En Prestamo', 'Confirmada');
+            dm.estado IN ('En Prestamo', 'Confirmada')
+             AND dm.fecha_vencimiento > NOW();
             `;
 
     const [result] = await pool.query(sql);
@@ -172,7 +172,7 @@ export const PrestamosActivosModal = async (req, res) => {
     const sql = `
         SELECT COUNT(*) AS cantidadPrestamosActivos
         FROM detalle_movimiento dm
-        WHERE dm.estado = 'En Prestamo';
+        WHERE dm.estado = 'En Prestamo'  AND dm.fecha_vencimiento > NOW();
       `;
 
     const [result] = await pool.query(sql);
@@ -189,7 +189,6 @@ export const PrestamosActivosModal = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
-
 
 //Reporte de todos los prestamos
 
@@ -236,6 +235,45 @@ export const ReporteTodosPrestamos = async (req, res) => {
   }
 };
 
+//Reporte de prestamos vencidos
+
+export const PrestamosVencidos = async (req, res) => {
+  try {
+    const sql = `
+            SELECT 
+            CONCAT(u.nombre_usuario, ' ', u.apellido_usuario) AS nombre_completo, 
+            u.identificacion, 
+            u.numero, 
+            dm.Observaciones, 
+            dm.cantidad, 
+            dm.fecha_vencimiento,
+            e.Nombre_elemento,
+            e.Codigo_elemento
+        FROM 
+            usuario u
+        INNER JOIN 
+            detalle_movimiento dm ON u.id_usuario = dm.Usuario_recibe
+        INNER JOIN 
+            elemento e ON dm.fk_elemento = e.Codigo_elemento
+        WHERE 
+            dm.estado = 'En Prestamo' 
+            AND dm.fecha_vencimiento < NOW();
+
+    `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Todos los préstamos encontrados", datos: result });
+    } else {
+      return res.status(200).json({ message: "No se encontraron préstamos" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
 
 //historial de todos los movimientos
 export const ReporteHistorialMovimientos = async (req, res) => {
