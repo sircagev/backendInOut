@@ -2,15 +2,15 @@ import {pool} from '../database/conexion.js';
 
 export const RegistrarCategoria = async (req, res) => {
     try {
-        let {Nombre_Categoria} = req.body;
-        let sql = `insert into categoria_elemento (Nombre_Categoria) values (?)`;
-        let values = [Nombre_Categoria];
+        let {name} = req.body;
+        let sql = `insert into categories (name) values (?)`;
+        let values = [name];
         let [result] = await pool.query(sql, values);
         
         if (result.affectedRows > 0) {
             return res.status(200).json({"message": "Categoria elemento registrado con éxito"});
         } else {
-            return res.status(400).json({"message": "Categoria elemento no registrado."});
+            return res.status(422).json({"message": "No se pudo registrar la categoría."});
         }
     } catch (error){
         return res.status(500).json(error);
@@ -19,12 +19,12 @@ export const RegistrarCategoria = async (req, res) => {
 
 export const ListarCategoria = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM categoria_elemento`);
+        let [result] = await pool.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM categories`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(404).json([]);
+            return res.status(204).json({message: "No se encontraron categorías."});
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -52,25 +52,32 @@ export const BuscarCategoria = async (req, res) => {
 export const ActualizarCategoria = async (req, res) => {
     try {
         let id = req.params.id;
-        let {Nombre_Categoria} = req.body;
-        let sql = `UPDATE categoria_elemento SET Nombre_Categoria = ? WHERE codigo_Categoria = ?`;
+        let { name } = req.body;
 
-        let [result] = await pool.query(sql, [Nombre_Categoria, id]);
+        const [categoriaResult] = await pool.query('SELECT * FROM categories WHERE category_id = ?', [id]);
+
+        if (categoriaResult.length === 0) {
+            return res.status(404).json({ "Message": "Categoría no encontrada." });
+        }
+
+        let sql = `UPDATE categories SET name = ? WHERE category_id = ?`;
+        let [result] = await pool.query(sql, [name, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({"Message": "Categoria Elemento actualizado con éxito."});
+            return res.status(200).json({ "Message": "Categoría actualizada con éxito." });
         } else {
-            return res.status(400).json({"Message": "Categoria Elemento no actualizado."});
+            return res.status(400).json({ "Message": "Categoría no actualizada." });
         }
-    } catch (error){
-        return res.status(500).json(error);
+    } catch (error) {
+        return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
-}
+};
+
 
 export const EliminarCategoria = async (req, res) => {
     try {
         let id = req.param.id;
-        let sql = `delete from categoria_elemento where codigo_Categoria = ?`;
+        let sql = `delete from categories where category_id = ?`;
         let [result] = await pool.query(sql, [id]);
 
         if (result.affectedRows > 0) {
@@ -88,7 +95,7 @@ export const DesactivarCategoria = async (req, res) => {
         const { id } = req.params;
 
         // Consulta SQL para obtener el estado actual de la categoría
-        const sqlGetEstado = `SELECT estado FROM categoria_elemento WHERE codigo_Categoria = ?`;
+        const sqlGetEstado = `SELECT status FROM categories WHERE category_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
         // Verificar si se encontró la categoría
@@ -96,18 +103,18 @@ export const DesactivarCategoria = async (req, res) => {
             return res.status(404).json({ message: "Categoría Elemento no encontrada." });
         }
 
-        const estadoActual = estadoResult[0].estado;
+        const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'Activo') {
-            nuevoEstado = 'Inactivo';
-        } else if (estadoActual === 'Inactivo') {
-            nuevoEstado = 'Activo';
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
         }
 
         // Actualizar el estado en la base de datos
-        const sqlUpdateEstado = `UPDATE categoria_elemento SET estado = ? WHERE codigo_Categoria = ?`;
+        const sqlUpdateEstado = `UPDATE categories SET status = ? WHERE category_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {

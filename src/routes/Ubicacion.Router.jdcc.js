@@ -4,10 +4,10 @@ import { RegistrarUbicacion, ListarUbicacion, BuscarUbicacion, ActualizarUbicaci
 
 const route = Router();
 
-route.post('/registrar', validarToken, RegistrarUbicacion);
-route.get('/listar', validarToken, ListarUbicacion);
+route.post('/registrar', RegistrarUbicacion);
+route.get('/listar', ListarUbicacion);
 route.get('/buscar/:id', validarToken, BuscarUbicacion);
-route.put('/actualizar/:id', validarToken, ActualizarUbicacion);
-route.put('/desactivar/:id', validarToken, Desactivarubicacion);
+route.put('/actualizar/:id', ActualizarUbicacion);
+route.put('/desactivar/:id', Desactivarubicacion);
 
 export default route;

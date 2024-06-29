@@ -2,15 +2,15 @@ import {pool} from '../database/conexion.js';
 
 export const RegistrarEmpaque = async (req, res) => {
     try {
-        let {Nombre_Empaque} = req.body;
-        let sql = `insert into tipo_empaque (Nombre_Empaque) values (?)`;
-        let values = [Nombre_Empaque];
+        let {name} = req.body;
+        let sql = `insert into package_types (name) values (?)`;
+        let values = [name];
         let [result] = await pool.query(sql, values);
         
         if (result.affectedRows > 0) {
             return res.status(200).json({"message": "Empaque registrado con éxito"});
         } else {
-            return res.status(400).json({"message": "Empaque no registrado."});
+            return res.status(422).json({"message": "No se pudo registrar el empaque."});
         }
     } catch (error){
         return res.status(500).json(error);
@@ -19,12 +19,12 @@ export const RegistrarEmpaque = async (req, res) => {
 
 export const ListarEmpaque = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM tipo_empaque`);
+        let [result] = await pool.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM package_types`);
 
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(404).json([]);
+            return res.status(404).json({message: 'No se eocntaron empaques'});
         }
     } catch (error) {
         return res.status(500).json(error);
@@ -35,7 +35,7 @@ export const BuscarEmpaque = async (req, res) => {
     try {
         let id = req.params.id;
         let id2 = id + '%';
-        let sql = `select * from tipo_empaque where Nombre_Empaque like ?`;
+        let sql = `select * from package_types where name like ?`;
 
         let [rows] = await pool.query(sql, id2);
 
@@ -52,25 +52,35 @@ export const BuscarEmpaque = async (req, res) => {
 export const ActualizarEmpaque = async (req, res) => {
     try {
         let id = req.params.id;
-        let {Nombre_Empaque} = req.body;
-        let sql = `UPDATE tipo_empaque SET Nombre_Empaque = ? WHERE codigo_Empaque = ?`;
+        let { name } = req.body;
 
-        let [result] = await pool.query(sql, [Nombre_Empaque, id]);
+        // Verificar si el tipo de empaque con el ID proporcionado existe
+        const [empaqueResult] = await pool.query('SELECT * FROM package_types WHERE packageType_id = ?', [id]);
+
+        // Si no se encuentra el tipo de empaque, devolver un error 404
+        if (empaqueResult.length === 0) {
+            return res.status(404).json({ "Message": "Tipo de empaque no encontrado." });
+        }
+
+        // Actualizar el nombre del tipo de empaque
+        let sql = `UPDATE package_types SET name = ? WHERE packageType_id = ?`;
+        let [result] = await pool.query(sql, [name, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({"Message": "Tipo Empaque actualizado con éxito."});
+            return res.status(200).json({ "Message": "Tipo de empaque actualizado con éxito." });
         } else {
-            return res.status(400).json({"Message": "Tipo Empaque no actualizado."});
+            return res.status(400).json({ "Message": "Tipo de empaque no actualizado." });
         }
-    } catch (error){
-        return res.status(500).json(error);
+    } catch (error) {
+        return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
-}
+};
+
 
 export const EliminarEmpaque = async (req, res) => {
     try {
         let id = req.param.id;
-        let sql = `delete from tipo_empaque where codigo_Empaque = ?`;
+        let sql = `delete from package_types where packageType_id = ?`;
         let [result] = await pool.query(sql, [id]);
 
         if (result.affectedRows > 0) {
@@ -87,23 +97,23 @@ export const DesactivarEmpaque = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const sqlGetEstado = `SELECT estado FROM tipo_empaque WHERE codigo_Empaque = ?`;
+        const sqlGetEstado = `SELECT status FROM package_types WHERE packageType_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Tipo de Empaque no encontrado." });
         }
 
-        const estadoActual = estadoResult[0].estado;
+        const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
-        if (estadoActual === 'Activo') {
-            nuevoEstado = 'Inactivo';
-        } else if (estadoActual === 'Inactivo') {
-            nuevoEstado = 'Activo';
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
         }
 
-        const sqlUpdateEstado = `UPDATE tipo_empaque SET estado = ? WHERE codigo_Empaque = ?`;
+        const sqlUpdateEstado = `UPDATE package_types SET status = ? WHERE packageType_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
