@@ -101,7 +101,7 @@ export const ActualizarUbicacion = async (req, res) => {
         const codigo_Bodega = bodegaResult[0].warehouse_id;
 
         // Consulta SQL para actualizar la ubicación
-        const sql = `UPDATE warehouseLocation_id SET name = ?, warehouse_id = ? WHERE warehouseLocation_id = ?`;
+        const sql = `UPDATE warehouse_locations SET name = ?, warehouse_id = ? WHERE warehouseLocation_id = ?`;
 
         const [result] = await pool.query(sql, [name, codigo_Bodega, id]);
 

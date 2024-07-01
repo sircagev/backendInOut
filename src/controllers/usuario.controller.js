@@ -4,24 +4,24 @@ import bcrypt from 'bcrypt';
 
 export const registrarUsuario = async (req, res) => {
     try {
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
+        let { user_id, name, lastname, email, phone, identification, role_id, position_id, couse_id } = req.body;
 
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
         // Verificar si el correo ya existe
-        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ?';
-        let [emailRows] = await pool.query(checkEmailSql, [email_usuario]);
+        let checkEmailSql = 'SELECT COUNT(*) as count FROM users WHERE email = ?';
+        let [emailRows] = await pool.query(checkEmailSql, [email]);
         // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
 
-        if (emailRows[0].count > 0) {
+        if (emailRows[0].count > 0) { 
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
 
         // Verificar si el correo ya existe
-        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ?';
-        let [emailIdentification] = await pool.query(checkIdentification, [identificacion]);
+        let checkIdentification = 'SELECT COUNT(*) as count FROM users WHERE identification = ?';
+        let [emailIdentification] = await pool.query(checkIdentification, [identification]);
         // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
 
         if (emailIdentification[0].count > 0) {
@@ -29,13 +29,13 @@ export const registrarUsuario = async (req, res) => {
         }
 
         // Encriptar la identificación para usarla como contraseña
-        const contraseniaForHash = identificacion.toString()
+        const contraseniaForHash = identification.toString()
         const saltRounds = 10; // Cost factor for bcrypt
         const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
-        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hashedPassword, Id_ficha, identificacion];
+        let sql = `INSERT INTO users (user_id, name, lastname, email, phone, identification, role_id, position_id, course_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        let values = [user_id, name, lastname, email, phone , identification, role_id, position_id, couse_id];
 
         let [rows] = await pool.query(sql, values);
 
@@ -51,7 +51,7 @@ export const registrarUsuario = async (req, res) => {
 
 export const ListarUsuario = async (req, res) => {
 
-    let [result] = await pool.query('select *from usuario')
+    let [result] = await pool.query('select *from users')
 
     if (result.length > 0) {
         return res.status(200).json(result);
@@ -64,7 +64,7 @@ export const ListarUsuario = async (req, res) => {
 export const EliminarUsuario = async (req, res) => {
 
     let id_usuario = req.params.id;
-    let sql = `delete from usuario where id_usuario = ${id_usuario}`;
+    let sql = `delete from users where user_id = ${id_usuario}`;
 
     let [rows] = await pool.query(sql);
 
