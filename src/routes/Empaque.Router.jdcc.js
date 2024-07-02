@@ -4,10 +4,10 @@ import { RegistrarEmpaque, ListarEmpaque, BuscarEmpaque, ActualizarEmpaque, Desa
 
 const route = Router();
 
-route.post('/registrar', validarToken, RegistrarEmpaque);
-route.get('/listar', validarToken, ListarEmpaque);
+route.post('/registrar', RegistrarEmpaque);
+route.get('/listar', ListarEmpaque);
 route.get('/buscar/:id', validarToken, BuscarEmpaque);
-route.put('/actualizar/:id', validarToken, ActualizarEmpaque);
-route.put('/desactivar/:id', validarToken, DesactivarEmpaque);
+route.put('/actualizar/:id', ActualizarEmpaque);
+route.put('/desactivar/:id', DesactivarEmpaque);
 
 export default route;

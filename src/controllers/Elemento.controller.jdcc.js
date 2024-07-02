@@ -1,23 +1,27 @@
 import { pool } from '../database/conexion.js';
+import { format } from 'date-fns';
 
 export const RegistrarElemento = async (req, res) => {
     try {
-        let {Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion} = req.body;
-        let sql = `insert into elemento (Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion) 
-                   values (?, ?, ?, ?, ?,?, ?)`;
-        let values = [Nombre_elemento, stock, fk_tipoElemento, fk_unidadMedida, fk_categoria, fk_tipoEmpaque, fk_detalleUbicacion];
+        let { name, elementType_id, category_id, measurementUnit_id, packageType_id } = req.body;
+
+        let sql = `INSERT INTO elements 
+               ( name, elementType_id, category_id, measurementUnit_id, packageType_id) 
+               VALUES (?, ?, ?, ?, ?)`;
+        let values = [name, elementType_id, category_id, measurementUnit_id, packageType_id];
 
         let [result] = await pool.query(sql, values);
-        
+
         if (result.affectedRows > 0) {
-            return res.status(200).json({ "message": "Elemento registrado con éxito" });
+            return res.status(200).json({ message: "Elemento registrado con éxito" });
         } else {
-            return res.status(400).json({ "message": "Elemento no registrado." });
+            return res.status(422).json({ message: "No se pudo registrar el elemento debido a datos incorrectos" });
         }
     } catch (error) {
-        return res.status(500).json(error.message);
+        return res.status(500).json({ message: error.message });
     }
-}
+};
+
 
 export const AñadirStock = async (req, res) => {
     try {
@@ -48,35 +52,32 @@ export const ListarElemetos = async (req, res) => {
     try {
         let [result] = await pool.query(
             `SELECT 
-                e.Codigo_elemento,
-                e.Nombre_elemento,
+                e.element_id,
+                e.name,
                 e.stock,
-                c.nombre_categoria AS fk_categoria,
-                n.nombre_tipoElemento AS fk_tipoElemento,
-                me.Nombre_Medida AS fk_unidadMedida,
-                em.Nombre_empaque AS fk_tipoEmpaque,
-                u.Nombre_ubicacion AS fk_detalleUbicacion,
-                e.Estado,
-                DATE_FORMAT(e.fecha_creacion, '%d/%m/%Y') AS fecha_creacion,
-                e.fecha_actualizacion
+                c.name AS category_id,
+                n.name AS elementType_id,
+                me.name AS measurementUnit_id,
+                em.name AS packageType_id,
+                e.status,
+                DATE_FORMAT(e.created_at, '%d/%m/%Y') AS fecha_creación
             FROM 
-                elemento AS e 
+                elements AS e 
             JOIN 
-                categoria_elemento AS c ON e.fk_categoria = c.codigo_categoria 
+                categories AS c ON e.category_id = c.category_id 
             JOIN 
-                tipo_elemento AS n ON e.fk_tipoElemento = n.codigo_Tipo
+                element_types AS n ON e.elementType_id = n.elementType_id
             JOIN 
-                unidad_medida AS me ON e.fk_unidadMedida = me.codigo_medida
+                measurement_units AS me ON e.measurementUnit_id = me.measurementUnit_id
             JOIN 
-                tipo_empaque AS em ON e.fk_tipoEmpaque = em.Codigo_empaque
-            JOIN 
-                detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle`
+                package_types AS em ON e.packageType_id = em.packageType_id
+                `
         );
 
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(404).json([]);
+            return res.status(204).json({ message: 'No se encontaron elementos registrados.' });
         }
     } catch (error) {
         console.error("Error al listar elementos:", error);
@@ -97,12 +98,12 @@ export const BuscarElemento = async (req, res) => {
                 JOIN detalle_ubicacion AS u ON e.fk_detalleUbicacion = u.codigo_Detalle
                 AND e.Nombre_elemento like ?
                 ORDER BY e.codigo_elemento ASC `;
-        let [rows] = await pool.query(sql, [id2]);   
+        let [rows] = await pool.query(sql, [id2]);
 
         if (rows.length > 0) {
-            
+
             return res.status(200).json({ "message": "Elemento encontrado con éxito", "Elemento": rows });
-            
+
         } else {
             return res.status(404).json({ "message": "Elemento no encontrado" });
         }
@@ -114,79 +115,80 @@ export const BuscarElemento = async (req, res) => {
 export const ActualizarElemento = async (req, res) => {
     try {
         const id = req.params.id;
-        const { Nombre_elemento, fk_tipoElemento, fk_categoria, fk_unidadMedida, fk_tipoEmpaque, fk_detalleUbicacion } = req.body;
+        const { name, elementType_id, category_id, measurementUnit_id, packageType_id } = req.body;
 
-        // Obtener el valor actual de stock
-        const [elementoResult] = await pool.query('SELECT stock FROM elemento WHERE Codigo_elemento = ?', [id]);
+        // Obtener el valor actual del elemento
+        const [elementoResult] = await pool.query('SELECT * FROM elements WHERE element_id = ?', [id]);
         if (elementoResult.length === 0) {
-            return res.status(400).json({ "Message": "Elemento no encontrado." });
+            return res.status(404).json({ "Message": "Elemento no encontrado." });
         }
-        const currentStock = elementoResult[0].stock;
+        const currentElement = elementoResult[0];
 
-        // Obtener codigo_categoria a partir del nombre_categoria
-        const [categoriaResult] = await pool.query('SELECT codigo_categoria FROM categoria_elemento WHERE nombre_categoria = ?', [fk_categoria]);
-        if (categoriaResult.length === 0) {
-            return res.status(400).json({ "Message": "Categoría no encontrada." });
+        // Obtener código de categoría a partir del nombre de categoría
+        let codigo_categoria = null;
+        if (category_id) {
+            const [categoriaResult] = await pool.query('SELECT category_id FROM categories WHERE category_id = ?', [category_id]);
+            if (categoriaResult.length === 0) {
+                return res.status(400).json({ "Message": "Categoría no encontrada." });
+            }
+            codigo_categoria = categoriaResult[0].category_id;
         }
-        const codigo_categoria = categoriaResult[0].codigo_categoria;
 
-        // Obtener codigo_Tipo a partir del nombre_tipoElemento
-        const [tipoElementoResult] = await pool.query('SELECT codigo_Tipo FROM tipo_elemento WHERE nombre_tipoElemento = ?', [fk_tipoElemento]);
-        if (tipoElementoResult.length === 0) {
-            return res.status(400).json({ "Message": "Tipo de elemento no encontrado." });
+        // Obtener código de tipo de elemento a partir del nombre de tipoElemento
+        let codigo_Tipo = null;
+        if (elementType_id) {
+            const [tipoElementoResult] = await pool.query('SELECT elementType_id FROM element_types WHERE elementType_id = ?', [elementType_id]);
+            if (tipoElementoResult.length === 0) {
+                return res.status(400).json({ "Message": "Tipo de elemento no encontrado." });
+            }
+            codigo_Tipo = tipoElementoResult[0].elementType_id;
         }
-        const codigo_Tipo = tipoElementoResult[0].codigo_Tipo;
 
-        // Obtener codigo_medida a partir del Nombre_Medida
-        const [unidadMedidaResult] = await pool.query('SELECT codigo_medida FROM unidad_medida WHERE Nombre_medida = ?', [fk_unidadMedida]);
-        if (unidadMedidaResult.length === 0) {
-            return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
+        // Obtener código de medida a partir del nombre de unidadMedida
+        let codigo_medida = null;
+        if (measurementUnit_id) {
+            const [unidadMedidaResult] = await pool.query('SELECT measurementUnit_id FROM measurement_units WHERE measurementUnit_id = ?', [measurementUnit_id]);
+            if (unidadMedidaResult.length === 0) {
+                return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
+            }
+            codigo_medida = unidadMedidaResult[0].measurementUnit_id;
         }
-        const codigo_medida = unidadMedidaResult[0].codigo_medida;
 
-        // Obtener Codigo_empaque a partir del Nombre_empaque
-        const [tipoEmpaqueResult] = await pool.query('SELECT Codigo_empaque FROM tipo_empaque WHERE Nombre_empaque = ?', [fk_tipoEmpaque]);
-        if (tipoEmpaqueResult.length === 0) {
-            return res.status(400).json({ "Message": "Tipo de empaque no encontrado." });
+        // Obtener código de empaque a partir del nombre de tipoEmpaque
+        let Codigo_empaque = null;
+        if (packageType_id) {
+            const [tipoEmpaqueResult] = await pool.query('SELECT packageType_id FROM package_types WHERE packageType_id = ?', [packageType_id]);
+            if (tipoEmpaqueResult.length === 0) {
+                return res.status(400).json({ "Message": "Tipo de empaque no encontrado." });
+            }
+            Codigo_empaque = tipoEmpaqueResult[0].packageType_id;
         }
-        const Codigo_empaque = tipoEmpaqueResult[0].Codigo_empaque;
-
-        // Obtener codigo_Detalle a partir del Nombre_ubicacion
-        const [ubicacionResult] = await pool.query('SELECT codigo_Detalle FROM detalle_ubicacion WHERE Nombre_ubicacion = ?', [fk_detalleUbicacion]);
-        if (ubicacionResult.length === 0) {
-            return res.status(400).json({ "Message": "Ubicación no encontrada." });
-        }
-        const codigo_Detalle = ubicacionResult[0].codigo_Detalle;
 
         // Consulta SQL para actualizar el elemento
         const sql = `
-            UPDATE elemento 
+            UPDATE elements 
             SET
-                Nombre_elemento = ?, 
-                stock = ?, 
-                fk_tipoElemento = ?, 
-                fk_categoria = ?, 
-                fk_unidadMedida = ?,
-                fk_tipoEmpaque = ?, 
-                fk_detalleUbicacion = ?
+                name = ?, 
+                elementType_id = ?, 
+                category_id = ?, 
+                measurementUnit_id = ?,
+                packageType_id = ?
             WHERE 
-                Codigo_elemento = ?`;
+                element_id = ?`;
 
         const [result] = await pool.query(sql, [
-            Nombre_elemento, 
-            currentStock,  // Usamos el valor actual de stock
-            codigo_Tipo, 
-            codigo_categoria, 
-            codigo_medida,
-            Codigo_empaque, 
-            codigo_Detalle, 
+            name || currentElement.name, // Usar el valor actual si no se proporciona uno nuevo
+            codigo_Tipo || currentElement.elementType_id, // Usar el valor actual si no se proporciona uno nuevo
+            codigo_categoria || currentElement.category_id, // Usar el valor actual si no se proporciona uno nuevo
+            codigo_medida || currentElement.measurementUnit_id, // Usar el valor actual si no se proporciona uno nuevo
+            Codigo_empaque || currentElement.packageType_id, // Usar el valor actual si no se proporciona uno nuevo
             id
         ]);
 
         if (result.affectedRows > 0) {
             return res.status(200).json({ "Message": "Elemento actualizado con éxito." });
         } else {
-            return res.status(400).json({ "Message": "Elemento no actualizado. Verifique que el ID exista." });
+            return res.status(400).json({ "Message": "Elemento no actualizado. Verifique los datos proporcionados." });
         }
     } catch (error) {
         console.error("Error al actualizar el elemento:", error);
@@ -194,10 +196,13 @@ export const ActualizarElemento = async (req, res) => {
     }
 };
 
+
+
+
 export const EliminarElemento = async (req, res) => {
     try {
         let id = req.params.id;
-        let sql = `delete from elemento where Codigo_elemento = ?`;
+        let sql = `delete from elements where element_id = ?`;
         let [result] = await pool.query(sql, [id]);
 
         if (result.affectedRows > 0) {
@@ -214,36 +219,36 @@ export const DesactivarElementos = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Consulta SQL para obtener el estado actual de la ubicación
-        const sqlGetEstado = `SELECT estado FROM elemento WHERE Codigo_elemento = ?`;
+        // Consulta SQL para obtener el estado actual del elemento
+        const sqlGetEstado = `SELECT status FROM elements WHERE element_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        // Verificar si se encontró la ubicación
+        // Verificar si se encontró el elemento
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Elemento no encontrado." });
         }
 
-        const estadoActual = estadoResult[0].estado;
+        const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'Activo') {
-            nuevoEstado = 'Inactivo';
-        } else if (estadoActual === 'Inactivo') {
-            nuevoEstado = 'Activo';
+        if (estadoActual === 'activo') {
+            nuevoEstado = 'inactivo';
+        } else if (estadoActual === 'inactivo') {
+            nuevoEstado = 'activo';
         } else {
             // En caso de un estado no esperado, mantener el estado actual
             nuevoEstado = estadoActual;
         }
 
         // Actualizar el estado en la base de datos
-        const sqlUpdateEstado = `UPDATE elemento SET estado = ? WHERE Codigo_elemento = ?`;
+        const sqlUpdateEstado = `UPDATE elements SET status = ? WHERE element_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
             return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Elemento no actualizado." });
+            return res.status(404).json({ message: "Elemento no actualizado." });
         }
 
     } catch (error) {

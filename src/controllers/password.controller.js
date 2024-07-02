@@ -5,17 +5,17 @@ import bcrypt from "bcrypt"
 
 const tokenPassword = async (peticion, respuesta) => {
     try {
-        const { email_usuario } = peticion.body;
-        const sql = "SELECT * FROM usuario WHERE email_usuario = ?"
-        const [user] = await pool.query(sql, [email_usuario]);
+        const { email } = peticion.body;
+        const sql = "SELECT * FROM users WHERE email = ?"
+        const [user] = await pool.query(sql, [email]);
         
         if (user.length > 0) {
-            console.log(user[0].id_usuario);
+            console.log(user[0].user_id);
         } else {
             return respuesta.status(404).json({ "message": "Usuario no encontrado" });
         }
 
-        const token = jwt.sign({ id_usuario: user[0].id_usuario }, "palabraSecreta", { expiresIn: "2h" });
+        const token = jwt.sign({ user_id: user[0].user_id }, "palabraSecreta", { expiresIn: "2h" });
         console.log(token);
 
         const transporter = nodemailer.createTransport({
@@ -31,10 +31,27 @@ const tokenPassword = async (peticion, respuesta) => {
 
         const mailOptions = {
             from: "proyectoformativoinout@gmail.com",
-            to: user[0].email_usuario,
+            to: user[0].email,
             subject: "Restablecer Contraseña In-Out",
-            text: `Querido Usuario da click en el siguiente enlace para restablecer la Contraseña http://localhost:3001/login?token=${token}`
-        }
+            html: `
+                <p>Querido Usuario,</p>
+                <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
+                <a href="http://localhost:3001/login?token=${token}" style="background-color: #39A900; color: white;
+                 padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">Restablecer Contraseña</a>
+                <p>Si no solicitaste un cambio de contraseña, por favor ignora este correo.</p>
+                <p>Saludos,<br>El equipo de In-Out</p>
+                <br>
+                <img src="cid:senaLogo" alt="SENA" style="width: 100px; height: auto;">
+            `,
+            attachments: [{
+                filename: 'sena.jpg',
+                path: './src/img/sena.jpg',
+                cid: 'senaLogo' 
+            }]
+        };
+        
+        
+        
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -55,12 +72,12 @@ const tokenPassword = async (peticion, respuesta) => {
 
 const resetPassword = async (peticion, respuesta) => {
     try {
-        const { token, contraseña_usuario } = peticion.body;
+        const { token, password } = peticion.body;
 
         const decoded = jwt.verify(token, "palabraSecreta");
-        const user = decoded.id_usuario;
+        const user = decoded.user_id;
 
-        const sql = "SELECT * FROM usuario WHERE id_usuario = ?";
+        const sql = "SELECT * FROM users WHERE user_id = ?";
         const [usuario] = await pool.query(sql, [user]);
 
         if (usuario.length === 0) {
@@ -69,11 +86,11 @@ const resetPassword = async (peticion, respuesta) => {
             });
         }
         // Encriptar la identificación para usarla como contraseña
-        const contraseniaForHash = contraseña_usuario.toString()
+        const contraseniaForHash = password.toString()
         const saltRounds = 10; // Cost factor for bcrypt
         const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
-        const sqlUpdate = "UPDATE usuario SET contraseña_usuario = ? WHERE id_usuario = ?";
+        const sqlUpdate = "UPDATE users SET password = ? WHERE user_id = ?";
         const [actualizar] = await pool.query(sqlUpdate, [hashedPassword, user]);
 
         if (actualizar.affectedRows > 0) {

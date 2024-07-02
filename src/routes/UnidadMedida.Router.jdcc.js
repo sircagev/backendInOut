@@ -4,10 +4,10 @@ import { RegistrarMedida, ListarMedida, Buscarmedida, ActualizarMedida, Desactiv
 
 const route = Router();
 
-route.post('/registrar', validarToken, RegistrarMedida);
-route.get('/listar', validarToken, ListarMedida);
+route.post('/registrar', RegistrarMedida);
+route.get('/listar', ListarMedida);
 route.get('/buscar/:id', validarToken, Buscarmedida);
-route.put('/actualizar/:id', validarToken, ActualizarMedida);
+route.put('/actualizar/:id', ActualizarMedida);
 route.put('/desactivar/:id', validarToken, DesactivarMedida);
 
 export default route;
