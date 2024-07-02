@@ -72,7 +72,7 @@ const tokenPassword = async (peticion, respuesta) => {
 
 const resetPassword = async (peticion, respuesta) => {
     try {
-        const { token, password} = peticion.body;
+        const { token, password } = peticion.body;
 
         const decoded = jwt.verify(token, "palabraSecreta");
         const user = decoded.user_id;

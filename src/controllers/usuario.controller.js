@@ -12,6 +12,7 @@ export const registrarUsuario = async (req, res) => {
         // Verificar si el correo ya existe
         let checkEmailSql = 'SELECT COUNT(*) as count FROM users WHERE email = ?';
         let [emailRows] = await pool.query(checkEmailSql, [email]);
+
         if (emailRows[0].count > 0) {
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
@@ -46,6 +47,7 @@ export const registrarUsuario = async (req, res) => {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         let values = [user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, hashedPassword];
 
+
         let [rows] = await pool.query(sql, values);
 
         if (rows.affectedRows > 0) {
@@ -68,6 +70,22 @@ export const ListarUsuario = async (req, res) => {
     }
     else {
         return res.status(403).json({ 'message': 'No existen Usuarios Registrados' });
+    }
+}
+
+
+export const EliminarUsuario = async (req, res) => {
+
+    let id_usuario = req.params.id;
+    let sql = `delete from users where user_id = ${id_usuario}`;
+
+    let [rows] = await pool.query(sql);
+
+    if (rows.affectedRows) {
+        return res.status(200).json({ 'message': 'Usuarios Eliminado con exito' });
+    }
+    else {
+        return res.status(403).json({ 'message': 'Usuarios no elimiado con exito' });
     }
 }
 
@@ -95,7 +113,6 @@ export const BuscarUsuario = async (req, res) => {
 
 export const ActualizarUsuario = async (req, res) => {
     try {
-
         let user_id = req.params.id;
         let { name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
