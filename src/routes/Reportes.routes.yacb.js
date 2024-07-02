@@ -1,26 +1,30 @@
 import { Router } from "express";
 import {
-  ReportePrestamosActivos,
-  ReporteTodosPrestamos,
-  PrestamosActivosModal,
-  ReporteHistorialMovimientos,
-  ReporteSolicitudesUsuario,
-  stockMinElementos,
+  CarryOverActiveLoans,
+  CarryOverOfLoansDue,
+  HistoryOfLoans,
+  CarryOverActiveLoansModal,
+  ReportOfMovements,
+  ReportOfApplications,
+  ReportStockMin,
   stockMinModal,
-  ReporteElementosDesactivados,
-  ReporteElementos,
-} from "../controllers/ReportesController.yacb.js";
+  ReportOffItems,
+  ReportingOfExpiredItems,
+  ReportOfElements,
+} from "../controllers/Reportes.Controller.yacb.js";
 
 const route = Router();
 
-route.get("/solicitudesusuario", ReporteSolicitudesUsuario);
-route.get("/prestamosactivos", ReportePrestamosActivos);
-route.get("/prestamos", ReporteTodosPrestamos);
-route.get("/prestamosactivosmodal", PrestamosActivosModal);
-route.get("/movimientoshistorial", ReporteHistorialMovimientos);
-route.get("/stockminelementos", stockMinElementos);
+route.get("/solicitudes", ReportOfApplications);
+route.get("/prestamosactivos", CarryOverActiveLoans);
+route.get("/prestamos", HistoryOfLoans);
+route.get("/prestamosvencidos", CarryOverOfLoansDue);
+route.get("/prestamosactivosmodal", CarryOverActiveLoansModal);
+route.get("/movimientos", ReportOfMovements);
+route.get("/stockmin", ReportStockMin);
 route.get("/stockminmodal", stockMinModal);
-route.get("/elementosdesactivados", ReporteElementosDesactivados);
-route.get("/elementos", ReporteElementos);
+route.get("/elementosdesactivados", ReportOffItems);
+route.get("/elementosexpirados", ReportingOfExpiredItems);
+route.get("/elementos", ReportOfElements);
 
 export default route;
