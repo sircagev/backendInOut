@@ -36,7 +36,7 @@ const tokenPassword = async (peticion, respuesta) => {
             html: `
                 <p>Querido Usuario,</p>
                 <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
-                <a href="http://localhost:3001/login?token=${token}" style="background-color: #4CAF50; color: white;
+                <a href="http://localhost:3001/login?token=${token}" style="background-color: #39A900; color: white;
                  padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">Restablecer Contraseña</a>
                 <p>Si no solicitaste un cambio de contraseña, por favor ignora este correo.</p>
                 <p>Saludos,<br>El equipo de In-Out</p>
