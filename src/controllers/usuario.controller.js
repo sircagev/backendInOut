@@ -60,18 +60,50 @@ export const registrarUsuario = async (req, res) => {
     }
 };
 
-
 export const ListarUsuario = async (req, res) => {
+        try {
+            let [result] = await pool.query(`
+                SELECT 
+                    u.user_id,
+                    u.name AS user_name,
+                    u.lastname,
+                    u.phone,
+                    u.email,
+                    u.identification,
+                    u.course_id,
+                    u.status,
+                    r.name AS role_name,
+                    p.name AS position_name
+                FROM 
+                    users u
+                JOIN 
+                    roles r ON u.role_id = r.role_id
+                JOIN 
+                    positions p ON u.position_id = p.position_id
+            `);
+        
+            // Loguear el resultado obtenido de la base de datos
+            console.log('Resultado de la consulta:', result);
+        
+            // Transformar el estado a un formato legible por humanos
+            result = result.map(user => ({
+                ...user,
+                status: user.status === '1' ? 'Activo' : user.status === '0' ? 'Inactivo' : 'Desconocido'
+            }));
+        
+            // Loguear el resultado después de la transformación
+            console.log('Resultado después de la transformación:', result);
+    
 
-    let [result] = await pool.query('select *from users')
-
-    if (result.length > 0) {
-        return res.status(200).json(result);
+        if (result.length > 0) {
+            return res.status(200).json(result);
+        } else {
+            return res.status(403).json({ 'message': 'No existen Usuarios Registrados' });
+        }
+    } catch (error) {
+        return res.status(500).json({ 'message': 'Error al listar usuarios', 'error': error.message });
     }
-    else {
-        return res.status(403).json({ 'message': 'No existen Usuarios Registrados' });
-    }
-}
+};
 
 
 export const EliminarUsuario = async (req, res) => {
@@ -88,7 +120,6 @@ export const EliminarUsuario = async (req, res) => {
         return res.status(403).json({ 'message': 'Usuarios no elimiado con exito' });
     }
 }
-
 export const BuscarUsuario = async (req, res) => {
     try {
         // Validar el ID de usuario
@@ -97,7 +128,26 @@ export const BuscarUsuario = async (req, res) => {
             return res.status(400).json({ message: 'ID de usuario no proporcionado' });
         }
 
-        const sql = 'SELECT * FROM users WHERE identification = ?';
+        const sql = `
+            SELECT 
+                u.user_id,
+                u.name AS user_name,
+                u.lastname,
+                u.phone,
+                u.email,
+                u.identification,
+                u.course_id,
+                r.name AS role_name,
+                p.name AS position_name
+            FROM 
+                users u
+            JOIN 
+                roles r ON u.role_id = r.role_id
+            JOIN 
+                positions p ON u.position_id = p.position_id
+            WHERE 
+                u.identification = ?
+        `;
         const [rows] = await pool.query(sql, [identification]);
 
         if (rows.length > 0) {
@@ -110,6 +160,7 @@ export const BuscarUsuario = async (req, res) => {
         return res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
+
 
 export const ActualizarUsuario = async (req, res) => {
     try {
