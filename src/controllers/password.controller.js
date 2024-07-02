@@ -5,17 +5,17 @@ import bcrypt from "bcrypt"
 
 const tokenPassword = async (peticion, respuesta) => {
     try {
-        const { email_usuario } = peticion.body;
-        const sql = "SELECT * FROM usuario WHERE email_usuario = ?"
-        const [user] = await pool.query(sql, [email_usuario]);
+        const { email } = peticion.body;
+        const sql = "SELECT * FROM users WHERE email = ?"
+        const [user] = await pool.query(sql, [email]);
         
         if (user.length > 0) {
-            console.log(user[0].id_usuario);
+            console.log(user[0].user_id);
         } else {
             return respuesta.status(404).json({ "message": "Usuario no encontrado" });
         }
 
-        const token = jwt.sign({ id_usuario: user[0].id_usuario }, "palabraSecreta", { expiresIn: "2h" });
+        const token = jwt.sign({ user_id: user[0].user_id }, "palabraSecreta", { expiresIn: "2h" });
         console.log(token);
 
         const transporter = nodemailer.createTransport({
@@ -55,12 +55,12 @@ const tokenPassword = async (peticion, respuesta) => {
 
 const resetPassword = async (peticion, respuesta) => {
     try {
-        const { token, contraseña_usuario } = peticion.body;
+        const { token, password } = peticion.body;
 
         const decoded = jwt.verify(token, "palabraSecreta");
         const user = decoded.id_usuario;
 
-        const sql = "SELECT * FROM usuario WHERE id_usuario = ?";
+        const sql = "SELECT * FROM users WHERE user_id = ?";
         const [usuario] = await pool.query(sql, [user]);
 
         if (usuario.length === 0) {
@@ -69,11 +69,11 @@ const resetPassword = async (peticion, respuesta) => {
             });
         }
         // Encriptar la identificación para usarla como contraseña
-        const contraseniaForHash = contraseña_usuario.toString()
+        const contraseniaForHash = password.toString()
         const saltRounds = 10; // Cost factor for bcrypt
         const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
-        const sqlUpdate = "UPDATE usuario SET contraseña_usuario = ? WHERE id_usuario = ?";
+        const sqlUpdate = "UPDATE users SET password = ? WHERE user_id = ?";
         const [actualizar] = await pool.query(sqlUpdate, [hashedPassword, user]);
 
         if (actualizar.affectedRows > 0) {

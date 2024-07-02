@@ -4,11 +4,11 @@ import { RegistrarTipo, ListarTipo, BuscarTipo, ActualizarTipo, EliminarTipo, De
 
 const route = Router();
 
-route.post('/registrar', validarToken, RegistrarTipo);
-route.get('/listar', validarToken, ListarTipo);
+route.post('/registrar', RegistrarTipo);
+route.get('/listar', ListarTipo);
 route.get('/buscar/:id', validarToken, BuscarTipo);
-route.put('/actualizar/:id', validarToken, ActualizarTipo);
+route.put('/actualizar/:id', ActualizarTipo);
 route.delete('/eliminar/:id', validarToken, EliminarTipo);
-route.put('/desactivar/:id', validarToken, DesactivarTipo);
+route.put('/desactivar/:id', DesactivarTipo);
 
 export default route;
