@@ -116,30 +116,37 @@ export const ReportingOfExpiredItems = async (req, res) => {
 export const ReportOffItems = async (req, res) => {
   try {
     const sql = `
-            SELECT 
-                e.element_id AS element_id, 
-                e.name AS element_name, 
-                e.stock AS stock,
-                DATE_FORMAT(e.updated_at, '%d/%m/%Y') AS update_at, 
-                w.name AS warehouse,
-                wl.name AS wlocation,
-                c.name AS category
-            FROM 
-                elements e
-            JOIN 
-                batches b ON e.element_id = b.element_id
-            JOIN 
-                batch_location_infos bli ON b.batch_id = bli.batch_id
-            JOIN 
-                warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-            JOIN 
-                warehouses w ON wl.warehouse_id = w.warehouse_id
-            LEFT JOIN 
-                categories c ON e.category_id = c.category_id
-            WHERE 
-                e.status = '0'
-            ORDER BY 
-                e.updated_at DESC;
+          SELECT 
+              e.element_id AS element_id, 
+              e.name AS element_name, 
+              e.stock AS stock,
+              DATE_FORMAT(e.updated_at, '%d/%m/%Y') AS update_at, 
+              w.name AS warehouse,
+              wl.name AS wlocation,
+              c.name AS category,
+              et.name AS element_type,
+              b.batch_serial AS batch_serial,
+              mu.name AS measurement_unit
+          FROM 
+              elements e
+          JOIN 
+              batches b ON e.element_id = b.element_id
+          JOIN 
+              batch_location_infos bli ON b.batch_id = bli.batch_id
+          JOIN 
+              warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
+          JOIN 
+              warehouses w ON wl.warehouse_id = w.warehouse_id
+          LEFT JOIN 
+              categories c ON e.category_id = c.category_id
+          JOIN 
+              element_types et ON e.elementType_id = et.elementType_id
+          LEFT JOIN 
+              measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
+          WHERE 
+              e.status = '0'
+          ORDER BY 
+              e.updated_at DESC;
       `;
 
     const [result] = await pool.query(sql);
@@ -432,31 +439,64 @@ export const ReportOfMovements = async (req, res) => {
   try {
     const sql = `
         SELECT 
-            m.movement_id,
-            CONCAT(u_application.name, ' ', u_application.lastname) AS user_application,
-            u_application.identification AS identification,
-            CONCAT(u_returning.name, ' ', u_returning.lastname) AS user_returning,
-            DATE_FORMAT(md.created_at, '%d/%m/%Y') AS created_at,
-            DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
-            md.quantity,
-            md.remarks,
+            CONCAT(u1.name, ' ', u1.lastname) AS user_manager,
+            CONCAT(u2.name, ' ', u2.lastname) AS user_action,
+            m.movement_id, 
+            DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+            md.element_id, 
+            md.quantity, 
+            md.remarks, 
+            b.batch_serial, 
             e.name AS element_name,
-            e.element_id AS element_id,
             mt.name AS movement_type
         FROM 
             movements m
         JOIN 
-            users u_application ON m.user_application = u_application.user_id
-        LEFT JOIN 
-            users u_returning ON m.user_returning = u_returning.user_id
-        JOIN 
             movement_details md ON m.movement_id = md.movement_id
+        JOIN 
+            batches b ON md.batch_id = b.batch_id
         JOIN 
             elements e ON md.element_id = e.element_id
         JOIN 
             movement_types mt ON m.movementType_id = mt.movementType_id
+        JOIN 
+            users u1 ON m.user_manager = u1.user_id
+        LEFT JOIN 
+            users u2 ON m.user_returning = u2.user_id
+        WHERE 
+            m.movementType_id = 1
+
+        UNION
+
+        SELECT 
+            CONCAT(u1.name, ' ', u1.lastname) AS user_manager,
+            CONCAT(u2.name, ' ', u2.lastname) AS user_action,
+            m.movement_id, 
+            DATE_FORMAT(m.created_at, ('%d/%m/%Y')) AS created_at,
+            md.element_id, 
+            md.quantity, 
+            md.remarks, 
+            b.batch_serial, 
+            e.name AS element_name,
+            mt.name AS movement_type_name
+        FROM 
+            movements m
+        JOIN 
+            movement_details md ON m.movement_id = md.movement_id
+        JOIN 
+            batches b ON md.batch_id = b.batch_id
+        JOIN 
+            elements e ON md.element_id = e.element_id
+        JOIN 
+            movement_types mt ON m.movementType_id = mt.movementType_id
+        JOIN 
+            users u1 ON m.user_manager = u1.user_id
+        LEFT JOIN 
+            users u2 ON m.user_receiving = u2.user_id
+        WHERE 
+            m.movementType_id = 2
         ORDER BY 
-            md.created_at DESC;
+            created_at DESC;
       `;
 
     const [result] = await pool.query(sql);
