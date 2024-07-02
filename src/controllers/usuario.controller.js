@@ -4,38 +4,47 @@ import bcrypt from 'bcrypt';
 
 export const registrarUsuario = async (req, res) => {
     try {
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
-
+        let { user_id, name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json(errors);
 
         // Verificar si el correo ya existe
-        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ?';
-        let [emailRows] = await pool.query(checkEmailSql, [email_usuario]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-
+        let checkEmailSql = 'SELECT COUNT(*) as count FROM users WHERE email = ?';
+        let [emailRows] = await pool.query(checkEmailSql, [email]);
         if (emailRows[0].count > 0) {
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
 
-        // Verificar si el correo ya existe
-        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ?';
-        let [emailIdentification] = await pool.query(checkIdentification, [identificacion]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-
-        if (emailIdentification[0].count > 0) {
+        // Verificar si la identificación ya existe
+        let checkIdentificationSql = 'SELECT COUNT(*) as count FROM users WHERE identification = ?';
+        let [identificationRows] = await pool.query(checkIdentificationSql, [identification]);
+        if (identificationRows[0].count > 0) {
             return res.status(400).json({ 'message': 'La identificación ya está registrada' });
         }
 
+        // Verificar si el role_id existe
+        let checkRoleIdSql = 'SELECT COUNT(*) as count FROM roles WHERE role_id = ?';
+        let [roleRows] = await pool.query(checkRoleIdSql, [role_id]);
+        if (roleRows[0].count === 0) {
+            return res.status(400).json({ 'message': 'El rol no existe' });
+        }
+
+        // Verificar si el position_id existe
+        let checkPositionIdSql = 'SELECT COUNT(*) as count FROM positions WHERE position_id = ?';
+        let [positionRows] = await pool.query(checkPositionIdSql, [position_id]);
+        if (positionRows[0].count === 0) {
+            return res.status(400).json({ 'message': 'La posición no existe' });
+        }
+
         // Encriptar la identificación para usarla como contraseña
-        const contraseniaForHash = identificacion.toString()
+        const contraseniaForHash = identification.toString();
         const saltRounds = 10; // Cost factor for bcrypt
         const hashedPassword = await bcrypt.hash(contraseniaForHash, saltRounds);
 
-        let sql = `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, rol, numero, contraseña_usuario, Id_ficha, identificacion)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        let values = [nombre_usuario, apellido_usuario, email_usuario, rol, numero, hashedPassword, Id_ficha, identificacion];
+        let sql = `INSERT INTO users (user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, password)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        let values = [user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, hashedPassword];
 
         let [rows] = await pool.query(sql, values);
 
@@ -49,9 +58,10 @@ export const registrarUsuario = async (req, res) => {
     }
 };
 
+
 export const ListarUsuario = async (req, res) => {
 
-    let [result] = await pool.query('select *from usuario')
+    let [result] = await pool.query('select *from users')
 
     if (result.length > 0) {
         return res.status(200).json(result);
@@ -61,31 +71,16 @@ export const ListarUsuario = async (req, res) => {
     }
 }
 
-export const EliminarUsuario = async (req, res) => {
-
-    let id_usuario = req.params.id;
-    let sql = `delete from usuario where id_usuario = ${id_usuario}`;
-
-    let [rows] = await pool.query(sql);
-
-    if (rows.affectedRows) {
-        return res.status(200).json({ 'message': 'Usuarios Eliminado con exito' });
-    }
-    else {
-        return res.status(403).json({ 'message': 'Usuarios no elimiado con exito' });
-    }
-}
-
 export const BuscarUsuario = async (req, res) => {
     try {
         // Validar el ID de usuario
-        const identificacion = req.params.id;
-        if (!identificacion) {
+        const identification = req.params.id;
+        if (!identification) {
             return res.status(400).json({ message: 'ID de usuario no proporcionado' });
         }
 
-        const sql = 'SELECT * FROM usuario WHERE identificacion = ?';
-        const [rows] = await pool.query(sql, [identificacion]);
+        const sql = 'SELECT * FROM users WHERE identification = ?';
+        const [rows] = await pool.query(sql, [identification]);
 
         if (rows.length > 0) {
             return res.status(200).json({ Datos: rows });
@@ -101,36 +96,20 @@ export const BuscarUsuario = async (req, res) => {
 export const ActualizarUsuario = async (req, res) => {
     try {
 
-        let id_usuario = req.params.id;
-        let { nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion } = req.body;
+        let user_id = req.params.id;
+        let { name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
-        // Verificar si el correo ya existe
-        let checkEmailSql = 'SELECT COUNT(*) as count FROM usuario WHERE email_usuario = ? AND id_usuario != ?';
-        let [emailRows] = await pool.query(checkEmailSql, [email_usuario, id_usuario]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
+        let sql = `UPDATE users SET name = ?,
+                                    lastname = ?,
+                                    phone = ?,
+                                    email = ?,
+                                    identification = ?,
+                                    role_id = ?,
+                                    position_id = ?,
+                                    course_id = ?
+                                    WHERE user_id = ?`
 
-        if (emailRows[0].count > 0) {
-            return res.status(400).json({ 'message': 'El correo ya está registrado' });
-        }
-
-        let checkIdentification = 'SELECT COUNT(*) as count FROM usuario WHERE identificacion = ? AND id_usuario != ?';
-        let [emailIdentification] = await pool.query(checkIdentification, [identificacion, id_usuario]);
-        // Asignar la contraseña del usuario al mismo valor que el nombre de usuario
-
-        if (emailIdentification[0].count > 0) {
-            return res.status(400).json({ 'message': 'La identificación ya está registrada' });
-        }
-
-        let sql = `UPDATE usuario SET nombre_usuario = ?,
-                                       apellido_usuario = ?,
-                                       email_usuario = ?,
-                                       rol = ?,
-                                       numero = ?,
-                                       Id_ficha = ?,
-                                       identificacion = ?
-                                       WHERE id_usuario = ?`
-
-        let [rows] = await pool.query(sql, [nombre_usuario, apellido_usuario, email_usuario, rol, numero, Id_ficha, identificacion, id_usuario]);
+        let [rows] = await pool.query(sql, [name, lastname, phone, email, identification, role_id, position_id, course_id, user_id]);
 
         if (rows.affectedRows) {
             return res.status(200).json({ 'message': 'Usuario actualizado con exito' });
@@ -143,77 +122,79 @@ export const ActualizarUsuario = async (req, res) => {
         return res.status(500).json({ 'message': e.message });
     }
 }
-
-export const EstadoUsuario = async (req, res) => {
-
-    let id_usuario = req.params.id;
-    let { Estado } = req.body;
-    let sql = `UPDATE usuario SET Estado = ?
-                 WHERE id_usuario = ?`
-
-    let [rows] = await pool.query(sql, [Estado, id_usuario]);
-
-    if (rows.affectedRows) {
-        return res.status(200).json({ 'message': 'Estado Actualizado con Exito' });
-    }
-    else {
-        return res.status(403).json({ 'message': 'Estado no Actualizado' });
-    }
-}
-
-export const InicioSesion = async (req, res) => {
-    try {
-        const { identificacion, contraseña_usuario } = req.body;
-        const sql = `SELECT * FROM usuario WHERE identificacion = ? AND contraseña_usuario = ? AND Estado = 'Activo'`;
-        const [rows] = await pool.query(sql, [identificacion, contraseña_usuario]);
-
-        if (rows.length > 0) {
-            return res.status(200).json({ 'message': 'Inicio de sesión Exitoso' });
-        } else {
-            return res.status(403).json({ 'message': 'Usuario o Contraseña Incorrectos' });
-        }
-    } catch (error) {
-        return res.status(500).json({ 'message': error.message });
-    }
-}
-
 export const DesactivarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Consulta SQL para obtener el estado actual de la ubicación
-        const sqlGetEstado = `SELECT Estado FROM usuario WHERE id_usuario = ?`;
+        // Consulta SQL para obtener el estado actual del usuario
+        const sqlGetEstado = `SELECT status FROM users WHERE user_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
-        // Verificar si se encontró la ubicación
+        // Verificar si se encontró el usuario
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Usuario no encontrado." });
         }
 
-        const estadoActual = estadoResult[0].Estado;
+        const estadoActual = estadoResult[0].status; // Asegúrate de que el nombre de la columna es 'status'
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'Activo') {
-            nuevoEstado = 'Inactivo';
-        } else if (estadoActual === 'Inactivo') {
-            nuevoEstado = 'Activo';
+        if (estadoActual === '0') {
+            nuevoEstado = '1';
+        } else if (estadoActual === '1') {
+            nuevoEstado = '0';
         } else {
             // En caso de un estado no esperado, mantener el estado actual
             nuevoEstado = estadoActual;
         }
 
         // Actualizar el estado en la base de datos
-        const sqlUpdateEstado = `UPDATE usuario SET Estado = ? WHERE id_usuario = ?`;
+        const sqlUpdateEstado = `UPDATE users SET status = ? WHERE user_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: `usuario actualizado a estado ${nuevoEstado} con éxito.` });
+            return res.status(200).json({ message: `Usuario actualizado a estado ${nuevoEstado} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "usuario no actualizado." });
+            return res.status(404).json({ message: "Usuario no actualizado." });
         }
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
+    }
+};
+
+export const ActualizarPerfil = async (req, res) => {
+    try {
+        const user_id = req.params.id;
+        const { name, lastname, phone, email, identification, position_id, course_id } = req.body;
+
+        // Validación básica de los campos de entrada
+        if (!name || !lastname || !phone || !email || !identification || !position_id || !course_id) {
+            return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+        }
+
+        // Comprobar si el email tiene un formato válido
+        const emailRegex = /^\S+@\S+\.\S+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'El correo electrónico no es válido' });
+        }
+
+        // Consulta SQL para actualizar el perfil del usuario
+        const sql = `
+            UPDATE users 
+            SET name = ?, lastname = ?, phone = ?, email = ?, identification = ?, position_id = ?, course_id = ?
+            WHERE user_id = ?
+        `;
+
+        const [rows] = await pool.query(sql, [name, lastname, phone, email, identification, position_id, course_id, user_id]);
+
+        if (rows.affectedRows) {
+            return res.status(200).json({ message: 'Perfil actualizado con éxito' });
+        } else {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al actualizar el perfil:', error);
+        return res.status(500).json({ message: 'Error interno del servidor' });
     }
 };

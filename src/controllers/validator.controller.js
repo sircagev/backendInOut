@@ -2,31 +2,36 @@ import { pool } from '../database/conexion.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
+
 export const validarUsuario = async (req, res) => {
   try {
-    let { email_usuario, contraseña_usuario } = req.body;
+    let { email, password } = req.body;
 
-    let sql = `SELECT id_usuario, nombre_usuario, apellido_usuario, rol, numero, Id_ficha, Estado, contraseña_usuario 
-               FROM usuario 
-               WHERE email_usuario = ?;`;
-    let [rows] = await pool.query(sql, [email_usuario]);
+    let sql = `SELECT user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, password, status
+               FROM users 
+               WHERE email = ?;`;
+    let [rows] = await pool.query(sql, [email]);
 
     if (rows.length > 0) {
       let user = rows[0];
 
-      const match = await bcrypt.compare(contraseña_usuario, user.contraseña_usuario);
+      const match = await bcrypt.compare(password, user.password);
 
       if (match) {
         // Verificar si el estado del usuario es "Activo"
-        if (user.Estado === 'Activo') {
+        if (user.status === '1') {
           // Generar token
           let token = jwt.sign({
-            id: user.id_usuario,
-            role: user.rol,
-            name: user.nombre_usuario,
-            lastname: user.apellido_usuario,
-            email: email_usuario,
-            phone: user.numero
+            id: user.user_id,
+            name: user.name,
+            lastname: user.lastname,
+            phone: user.phone,
+            email: user.email,
+            identification: user.identification,
+            role: user.role_id,
+            position_id: user.position_id,
+            course_id: user.course_id,
+            estado: user.status
           }, process.env.SECRET_KEY, {
             expiresIn: process.env.TIME,
           });
@@ -41,10 +46,16 @@ export const validarUsuario = async (req, res) => {
           return res.status(200).json({
             message: "Usuario autenticado",
             token,
-            userName: user.nombre_usuario,
-            role: user.rol,
-            codigo: user.id_usuario,
-            estado: user.Estado
+            userName: user.name,
+            lastname: user.lastname,
+            phone: user.phone,
+            email: user.email,
+            identification: user.identification,
+            role: user.role_id,
+            position_id: user.position_id,
+            course_id: user.course_id,
+            user_id: user.user_id,
+            estado: user.status
           });
         } else {
           return res.status(403).json({ message: "El usuario no está activo" });
@@ -56,13 +67,14 @@ export const validarUsuario = async (req, res) => {
       return res.status(404).json({ message: "Usuario no autenticado" });
     }
   } catch (e) {
-    console.log(e)
+    console.log(e);
     return res.status(500).json({
       message: e.message,
-      error: "No se que paso"
+      error: "Error en la autenticación del usuario"
     });
   }
 };
+
 
 export const validarToken = async (req, res, next) => {
   let token_Cliente = req.headers['token'];
