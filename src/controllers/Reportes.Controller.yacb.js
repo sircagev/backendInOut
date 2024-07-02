@@ -316,30 +316,31 @@ export const CarryOverActiveLoans = async (req, res) => {
   try {
     const sql = `
       SELECT 
-          e.name AS element_name,
-          e.element_id,
-          md.quantity,
-          md.remarks,
-          CONCAT(ua.name, ' ', ua.lastname) AS user_application,
-          CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
-          ls.name AS loan_status,
-          DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-          DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return
-      FROM 
-          movement_details md
-      JOIN 
-          movements m ON md.movement_id = m.movement_id
-      JOIN 
-          elements e ON md.element_id = e.element_id
-      LEFT JOIN 
-          users ua ON m.user_application = ua.user_id
-      LEFT JOIN 
-          users ur ON m.user_receiving = ur.user_id
-      JOIN 
-          loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
-      WHERE 
-          m.movementLoan_status = '1' 
-          AND m.estimated_return >= CURDATE();
+    e.name AS element_name,
+    e.element_id,
+    md.quantity,
+    md.remarks,
+    CONCAT(ua.name, ' ', ua.lastname) AS user_application,
+    CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
+    ls.name AS loan_status,
+    DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+    DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return
+FROM 
+    movement_details md
+JOIN 
+    movements m ON md.movement_id = m.movement_id
+JOIN 
+    elements e ON md.element_id = e.element_id
+LEFT JOIN 
+    users ua ON m.user_application = ua.user_id
+LEFT JOIN 
+    users ur ON md.user_receiving = ur.user_id
+JOIN 
+    loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+WHERE 
+    m.movementLoan_status = '1' 
+    AND m.estimated_return >= CURDATE();
+
       `;
 
     const [result] = await pool.query(sql);
