@@ -497,7 +497,7 @@ export const ReportOfMovements = async (req, res) => {
         WHERE 
             m.movementType_id = 2
         ORDER BY 
-            created_at DESC;
+            movement_id ASC;
       `;
 
     const [result] = await pool.query(sql);
