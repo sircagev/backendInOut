@@ -62,16 +62,37 @@ export const registrarUsuario = async (req, res) => {
 
 
 export const ListarUsuario = async (req, res) => {
+    try {
+        let [result] = await pool.query(`
+            SELECT 
+                u.user_id,
+                u.name AS user_name,
+                u.lastname,
+                u.phone,
+                u.email,
+                u.identification,
+                u.course_id,
+                u.status,
+                r.name AS role_name,
+                p.name AS position_name
+            FROM 
+                users u
+            JOIN 
+                roles r ON u.role_id = r.role_id
+            JOIN 
+                positions p ON u.position_id = p.position_id
+        `);
 
-    let [result] = await pool.query('select *from users')
 
     if (result.length > 0) {
         return res.status(200).json(result);
-    }
-    else {
+    } else {
         return res.status(403).json({ 'message': 'No existen Usuarios Registrados' });
     }
-}
+} catch (error) {
+    return res.status(500).json({ 'message': 'Error al listar usuarios', 'error': error.message });
+    }
+};
 
 
 export const EliminarUsuario = async (req, res) => {
