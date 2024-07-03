@@ -112,6 +112,48 @@ export const ReportingOfExpiredItems = async (req, res) => {
   }
 };
 
+//Modal Elementos expirados
+export const ExpiredModal = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              COUNT(*) AS total_count
+          FROM 
+              elements e
+          JOIN 
+              categories c ON e.category_id = c.category_id
+          JOIN 
+              element_types et ON e.elementType_id = et.elementType_id
+          LEFT JOIN 
+              measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
+          JOIN 
+              batches b ON e.element_id = b.element_id
+          JOIN 
+              batch_location_infos bli ON b.batch_id = bli.batch_id
+          JOIN 
+              warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
+          JOIN 
+              warehouses w ON wl.warehouse_id = w.warehouse_id
+          WHERE 
+              b.expiration >= CURDATE()
+              OR (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY));
+        `;
+
+    const [rows] = await pool.query(sql);
+
+    if (rows.length > 0) {
+      const quantityResults = rows[0].total_count;
+      return res.status(200).json(quantityResults);
+    } else {
+      return res
+        .status(200)
+        .json({ message: "No data were found to generate the report" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 //Reporetes Elementos Desactivados
 export const ReportOffItems = async (req, res) => {
   try {
@@ -206,7 +248,6 @@ export const ReportStockMin = async (req, res) => {
             ORDER BY 
                 w.name, e.name;
     `;
-
     const [rows] = await pool.query(sql);
 
     if (rows.length > 0) {
@@ -310,6 +351,39 @@ export const CarryOverOfLoansDue = async (req, res) => {
     return res.status(500).json({ message: error });
   }
 };
+
+//Prestamos Vencidos modal
+export const LoansDueModal = async (req, res) => {
+  try {
+    const sql = `
+SELECT 
+    COUNT(*) AS total
+FROM 
+    users u
+LEFT JOIN 
+    movements m ON u.user_id = m.user_application
+LEFT JOIN 
+    movement_details md ON m.movement_id = md.movement_id
+LEFT JOIN 
+    elements e ON md.element_id = e.element_id
+WHERE 
+    m.estimated_return < CURDATE();
+      `;
+
+      const [rows] = await pool.query(sql);
+
+      if (rows.length > 0) {
+        const quantityResults = rows[0].total;
+        return res.status(200).json(quantityResults);
+      } else {
+        return res
+          .status(200)
+          .json({ message: "No data were found to generate the report" });
+      }
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  };
 
 //Préstamos activos
 export const CarryOverActiveLoans = async (req, res) => {
@@ -419,12 +493,11 @@ export const CarryOverActiveLoansModal = async (req, res) => {
       WHERE 
           m.movementLoan_status = '1' AND m.estimated_return >= CURDATE();
     `;
-
     const [result] = await pool.query(sql);
 
     if (result.length > 0) {
       const quantityResults = result[0].AmountOfLoans;
-      return res.status(200).json({ AmountOfLoans: quantityResults });
+      return res.status(200).json(quantityResults);
     } else {
       return res
         .status(200)
@@ -541,7 +614,9 @@ export const ReportOfApplications = async (req, res) => {
         JOIN 
             elements e ON md.element_id = e.element_id
         LEFT JOIN 
-            users u2 ON m.user_receiving = u2.user_id;
+            users u2 ON m.user_receiving = u2.user_id
+        ORDER BY
+            created_at DESC;
       `;
 
     const [result] = await pool.query(sql);
@@ -557,5 +632,40 @@ export const ReportOfApplications = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({ message: error });
+  }
+};
+
+//Solicitudes Modal
+export const ApplicationsModal = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              COUNT(*) AS count
+          FROM 
+              movement_details md
+          JOIN 
+              movements m ON md.movement_id = m.movement_id
+          JOIN 
+              users u ON m.user_application = u.user_id
+          JOIN 
+              roles r ON u.role_id = r.role_id
+          JOIN 
+              elements e ON md.element_id = e.element_id
+          LEFT JOIN 
+              users u2 ON m.user_receiving = u2.user_id;
+        `;
+
+    const [rows] = await pool.query(sql);
+
+    if (rows.length > 0) {
+      const quantityResults = rows[0].count;
+      return res.status(200).json(quantityResults);
+    } else {
+      return res
+        .status(200)
+        .json({ message: "No data were found to generate the report" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
