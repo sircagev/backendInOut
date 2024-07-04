@@ -300,8 +300,8 @@ export const getMovements = async (req, res) => {
         const movementsSql = `SELECT 
                                 m.movement_id AS 'codigo',
                                 m.created_at AS 'fecha',
-                                u.name AS 'nombre',
-                                u.lastname AS 'apellido',
+                                CONCAT( u.name, ' ', u.lastname) AS "nombre",
+                                
                                 u.email AS 'correo',
                                 u.identification AS 'identificacion',
                                 mt.name AS 'tipo'

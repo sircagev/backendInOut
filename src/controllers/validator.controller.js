@@ -99,7 +99,7 @@ export const validarUsuario = async (req, res) => {
 };
 
 export const validarToken = async (req, res, next) => {
-  const token_Cliente = req.cookies.InOutToken;
+  const token_Cliente = req.cookies.token;
   if (!token_Cliente) {
     return res.status(401).json({
       error: true,
