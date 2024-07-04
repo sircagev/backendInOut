@@ -91,7 +91,7 @@ export const ReportingOfExpiredItems = async (req, res) => {
             warehouses w ON wl.warehouse_id = w.warehouse_id
         WHERE 
             b.expiration >= CURDATE()
-            OR (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY))
+            AND (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY))
         ORDER BY 
             b.expiration ASC, e.name ASC;
       `;
@@ -136,7 +136,7 @@ export const ExpiredModal = async (req, res) => {
               warehouses w ON wl.warehouse_id = w.warehouse_id
           WHERE 
               b.expiration >= CURDATE()
-              OR (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY));
+              AND (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY));
         `;
 
     const [rows] = await pool.query(sql);
@@ -412,7 +412,7 @@ LEFT JOIN
 JOIN 
     loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
 WHERE 
-    m.movementLoan_status = '1' 
+    m.movementLoan_status = '5' 
     AND m.estimated_return >= CURDATE();
 
       `;
@@ -491,7 +491,7 @@ export const CarryOverActiveLoansModal = async (req, res) => {
       JOIN 
           loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
       WHERE 
-          m.movementLoan_status = '1' AND m.estimated_return >= CURDATE();
+          m.movementLoan_status = '5' AND m.estimated_return >= CURDATE();
     `;
     const [result] = await pool.query(sql);
 
