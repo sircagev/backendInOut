@@ -19,7 +19,7 @@ export const RegistrarMedida = async (req, res) => {
 
 export const ListarMedida = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT *,  DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM measurement_units`);
+        let [result] = await pool.query(`SELECT *, measurementUnit_id AS "codigo",  DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM measurement_units`);
 
 
         if (result.length > 0) {
