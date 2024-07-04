@@ -21,9 +21,10 @@ export const ListarUbicacion = async (req, res) => {
     try {
         let [result] = await pool.query(`
             SELECT 
-                e.warehouseLocation_id,
+                e.warehouseLocation_id AS "codigo",
                 e.name,
                 c.name AS warehouse_id,
+                c.warehouse_id AS id_warehouse,
                 e.status,
                 DATE_FORMAT(e.created_at, '%d/%m/%Y') AS fecha_creacion
             FROM 

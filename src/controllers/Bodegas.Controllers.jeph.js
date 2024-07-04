@@ -28,7 +28,7 @@ export const RegistrarBodega = async (req, res) => {
 
 export const listarBodegas = async(req, res) => {
     try {
-        const [result] = await pool.query("SELECT *, DATE_FORMAT(fecha_creacion, '%d/%m/%Y') AS fecha_creacion FROM bodega");
+        const [result] = await pool.query("SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM warehouses");
         
         if(result.length > 0) {
             return res.status(200).json(result); 
