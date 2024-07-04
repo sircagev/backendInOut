@@ -19,7 +19,8 @@ export const RegistrarCategoria = async (req, res) => {
 
 export const ListarCategoria = async (req, res) => {
     try {
-        let [result] = await pool.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM categories`);
+        let [result] = await pool.query(`SELECT *, 
+            category_id AS "codigo", DATE_FORMAT(created_at, '%d/%m/%Y') AS fecha_creacion FROM categories`);
 
         if (result.length > 0) {
             return res.status(200).json(result);

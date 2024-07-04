@@ -52,13 +52,17 @@ export const ListarElemetos = async (req, res) => {
     try {
         let [result] = await pool.query(
             `SELECT 
-                e.element_id,
+                e.element_id AS "codigo",
                 e.name,
                 e.stock,
-                c.name AS category_id,
+                c.name  AS category_id,
+                c.category_id AS id_category,
                 n.name AS elementType_id,
+                n.elementType_id AS id_type,
                 me.name AS measurementUnit_id,
+                me.measurementUnit_id AS id_unit,
                 em.name AS packageType_id,
+                em.packageType_id AS id_package,
                 e.status,
                 DATE_FORMAT(e.created_at, '%d/%m/%Y') AS fecha_creación
             FROM 
@@ -124,46 +128,6 @@ export const ActualizarElemento = async (req, res) => {
         }
         const currentElement = elementoResult[0];
 
-        // Obtener código de categoría a partir del nombre de categoría
-        let codigo_categoria = null;
-        if (category_id) {
-            const [categoriaResult] = await pool.query('SELECT category_id FROM categories WHERE category_id = ?', [category_id]);
-            if (categoriaResult.length === 0) {
-                return res.status(400).json({ "Message": "Categoría no encontrada." });
-            }
-            codigo_categoria = categoriaResult[0].category_id;
-        }
-
-        // Obtener código de tipo de elemento a partir del nombre de tipoElemento
-        let codigo_Tipo = null;
-        if (elementType_id) {
-            const [tipoElementoResult] = await pool.query('SELECT elementType_id FROM element_types WHERE elementType_id = ?', [elementType_id]);
-            if (tipoElementoResult.length === 0) {
-                return res.status(400).json({ "Message": "Tipo de elemento no encontrado." });
-            }
-            codigo_Tipo = tipoElementoResult[0].elementType_id;
-        }
-
-        // Obtener código de medida a partir del nombre de unidadMedida
-        let codigo_medida = null;
-        if (measurementUnit_id) {
-            const [unidadMedidaResult] = await pool.query('SELECT measurementUnit_id FROM measurement_units WHERE measurementUnit_id = ?', [measurementUnit_id]);
-            if (unidadMedidaResult.length === 0) {
-                return res.status(400).json({ "Message": "Unidad de medida no encontrada." });
-            }
-            codigo_medida = unidadMedidaResult[0].measurementUnit_id;
-        }
-
-        // Obtener código de empaque a partir del nombre de tipoEmpaque
-        let Codigo_empaque = null;
-        if (packageType_id) {
-            const [tipoEmpaqueResult] = await pool.query('SELECT packageType_id FROM package_types WHERE packageType_id = ?', [packageType_id]);
-            if (tipoEmpaqueResult.length === 0) {
-                return res.status(400).json({ "Message": "Tipo de empaque no encontrado." });
-            }
-            Codigo_empaque = tipoEmpaqueResult[0].packageType_id;
-        }
-
         // Consulta SQL para actualizar el elemento
         const sql = `
             UPDATE elements 
@@ -178,10 +142,10 @@ export const ActualizarElemento = async (req, res) => {
 
         const [result] = await pool.query(sql, [
             name || currentElement.name, // Usar el valor actual si no se proporciona uno nuevo
-            codigo_Tipo || currentElement.elementType_id, // Usar el valor actual si no se proporciona uno nuevo
-            codigo_categoria || currentElement.category_id, // Usar el valor actual si no se proporciona uno nuevo
-            codigo_medida || currentElement.measurementUnit_id, // Usar el valor actual si no se proporciona uno nuevo
-            Codigo_empaque || currentElement.packageType_id, // Usar el valor actual si no se proporciona uno nuevo
+            elementType_id || currentElement.elementType_id, // Usar el valor actual si no se proporciona uno nuevo
+            category_id || currentElement.category_id, // Usar el valor actual si no se proporciona uno nuevo
+            measurementUnit_id || currentElement.measurementUnit_id, // Usar el valor actual si no se proporciona uno nuevo
+            packageType_id || currentElement.packageType_id, // Usar el valor actual si no se proporciona uno nuevo
             id
         ]);
 
@@ -195,6 +159,7 @@ export const ActualizarElemento = async (req, res) => {
         return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };
+
 
 
 
