@@ -89,15 +89,16 @@ export const ListarUsuario = async (req, res) => {
             let [result] = await pool.query(`
                 SELECT 
                     u.user_id AS 'codigo',
-                    u.name AS user_name,
-                    u.lastname,
+                    CONCAT(u.name,' ',u.lastname) AS nombre,
                     u.phone,
-                    u.email,
+                    u.email AS correo,
                     u.identification,
                     u.course_id,
                     u.status,
-                    r.name AS role_name,
-                    p.name AS position_name
+                    r.role_id,
+                    r.name AS role,
+                    p.position_id,
+                    p.name AS position
                 FROM 
                     users u
                 JOIN 

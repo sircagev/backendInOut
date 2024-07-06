@@ -19,7 +19,9 @@ import RouteElemento from "./src/routes/Elemento.Router.jdcc.js";
 import RouteUsuario from "./src/routes/usuario.router.js";
 import RouteValidar from "./src/routes/validator.router.js";
 import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
-import RouteContraseña from "./src/routes/password.router.js"
+import RouteContraseña from "./src/routes/password.router.js";
+import RouteRoles from "./src/routes/Roles.routes.js";
+import PositionsRoute from "./src/routes/Positions.routes.js";
 
 //Configuración
 const app = express(); // Crear la instancia de aplicación express
@@ -58,6 +60,8 @@ app.use('/usuario', RouteUsuario);
 app.use('/validate', RouteValidar);
 app.use('/reporte', reportesRoute);
 app.use('/contrasena', RouteContraseña);
+app.use('/roles', RouteRoles);
+app.use('/positions', PositionsRoute);
 
 //Iniciar el servidor
 const startServer = async () => {
