@@ -88,7 +88,7 @@ export const ListarUsuario = async (req, res) => {
         try {
             let [result] = await pool.query(`
                 SELECT 
-                    u.user_id,
+                    u.user_id AS 'codigo',
                     u.name AS user_name,
                     u.lastname,
                     u.phone,

@@ -24,7 +24,7 @@ export const ListarEmpaque = async (req, res) => {
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(404).json({message: 'No se eocntaron empaques'});
+            return res.status(200).json({message: 'No se eocntaron empaques'});
         }
     } catch (error) {
         return res.status(500).json(error);
