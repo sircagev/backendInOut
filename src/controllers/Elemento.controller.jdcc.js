@@ -55,7 +55,7 @@ export const ListarElemetos = async (req, res) => {
                 e.element_id AS "codigo",
                 e.name,
                 e.stock,
-                c.name  AS category_id,
+                c.name AS category_id,
                 c.category_id AS id_category,
                 n.name AS elementType_id,
                 n.elementType_id AS id_type,
