@@ -25,7 +25,7 @@ export const ListarMedida = async (req, res) => {
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(200).json({message: "No se encontaron medeidas"});
+            return res.status(204).json({message: "No hay medidas registradas"});
         }
     } catch (error) {
         return res.status(500).json(error);
