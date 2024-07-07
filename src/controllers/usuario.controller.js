@@ -2,6 +2,7 @@ import { pool } from '../database/conexion.js';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 
+
 export const registrarUsuario = async (req, res) => {
     try {
         console.log("Datos recibidos en el backend:", req.body);
@@ -33,20 +34,18 @@ export const registrarUsuario = async (req, res) => {
             }
         }
 
-        // Verificar si el role_id existe
-        let checkRoleIdSql = 'SELECT COUNT(*) as count FROM roles WHERE role_id = ?';
-        let [roleRows] = await pool.query(checkRoleIdSql, [role_id]);
-        if (roleRows[0].count === 0) {
-            console.log("El rol no existe");
-            return res.status(400).json({ 'message': 'El rol no existe' });
-        }
-
         // Verificar si el position_id existe
         let checkPositionIdSql = 'SELECT COUNT(*) as count FROM positions WHERE position_id = ?';
         let [positionRows] = await pool.query(checkPositionIdSql, [position_id]);
         if (positionRows[0].count === 0) {
             console.log("La posición no existe");
             return res.status(400).json({ 'message': 'La posición no existe' });
+        }
+
+        // Validar que course_id solo se pueda ingresar si position_id es 1 (aprendiz)
+        if (position_id !== 1 && course_id) {
+            console.log("No se puede asignar Id de Ficha para esta posición");
+            return res.status(400).json({ 'message': 'El Id de Ficha solo se puede ingresar para un aprendiz' });
         }
 
         // Encriptar la identificación para usarla como contraseña si se ha proporcionado
@@ -181,14 +180,21 @@ export const BuscarUsuario = async (req, res) => {
         return res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
-
-
 export const ActualizarUsuario = async (req, res) => {
     try {
         let user_id = req.params.id;
         let { name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
-        let sql = `UPDATE users SET name = ?,
+    
+        // Validar que course_id solo se pueda actualizar si position_id es 1 (aprendiz)
+        if (position_id !== 1 && course_id !== undefined) {
+            console.log("No se puede actualizar el Id de Ficha para esta posición");
+            return res.status(400).json({ 'message': 'El Id de Ficha solo se puede actualizar para un aprendiz' });
+        }
+
+        let sql, values;
+        if (course_id !== undefined) {
+            sql = `UPDATE users SET name = ?,
                                     lastname = ?,
                                     phone = ?,
                                     email = ?,
@@ -196,21 +202,36 @@ export const ActualizarUsuario = async (req, res) => {
                                     role_id = ?,
                                     position_id = ?,
                                     course_id = ?
-                                    WHERE user_id = ?`
-
-        let [rows] = await pool.query(sql, [name, lastname, phone, email, identification, role_id, position_id, course_id, user_id]);
-
-        if (rows.affectedRows) {
-            return res.status(200).json({ 'message': 'Usuario actualizado con exito' });
+                                    WHERE user_id = ?`;
+            values = [name, lastname, phone, email, identification, role_id, position_id, course_id, user_id];
+        } else {
+            sql = `UPDATE users SET name = ?,
+                                    lastname = ?,
+                                    phone = ?,
+                                    email = ?,
+                                    identification = ?,
+                                    role_id = ?,
+                                    position_id = ?
+                                    WHERE user_id = ?`;
+            values = [name, lastname, phone, email, identification, role_id, position_id, user_id];
         }
-        else {
-            return res.status(403).json({ 'message': 'Usuarios No actualizado' });
+
+        console.log("Query a ejecutar:", sql);
+        console.log("Valores:", values);
+
+        let [rows] = await pool.query(sql, values);
+
+        if (rows.affectedRows > 0) {
+            return res.status(200).json({ 'message': 'Usuario actualizado con éxito' });
+        } else {
+            return res.status(403).json({ 'message': 'Usuario no actualizado' });
         }
-    }
-    catch (e) {
+    } catch (e) {
+        console.error("Error en el servidor:", e.message);
         return res.status(500).json({ 'message': e.message });
     }
-}
+};
+
 export const DesactivarUsuario = async (req, res) => {
     try {
         const { id } = req.params;
@@ -291,5 +312,39 @@ export const ActualizarPerfil = async (req, res) => {
     } catch (error) {
         console.error('Error al actualizar el perfil:', error);
         return res.status(500).json({ message: 'Error interno del servidor' });
+    }
+};
+
+export const cambiarContrasena = async (req, res) => {
+    try {
+        const user_id = req.params.id;
+        const { password, newPassword, confirmPassword } = req.body;
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: "Las nuevas contraseñas no coinciden" });
+        }
+
+        const obtenerContrasenaSql = 'SELECT password FROM users WHERE user_id = ?';
+        const [rows] = await pool.query(obtenerContrasenaSql, [user_id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        const storedPassword = rows[0].password;
+        const passwordsMatch = await bcrypt.compare(password, storedPassword);
+
+        if (!passwordsMatch) {
+            return res.status(400).json({ message: "La contraseña actual es incorrecta" });
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        const actualizarContrasenaSql = 'UPDATE users SET password = ? WHERE user_id = ?';
+        await pool.query(actualizarContrasenaSql, [hashedNewPassword, user_id]);
+
+        return res.status(200).json({ message: "Contraseña actualizada correctamente" });
+    } catch (error) {
+        console.error("Error al cambiar la contraseña:", error.message);
+        return res.status(500).json({ message: "Error interno al cambiar la contraseña" });
     }
 };
