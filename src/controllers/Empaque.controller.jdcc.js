@@ -107,10 +107,10 @@ export const DesactivarEmpaque = async (req, res) => {
         const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
-        if (estadoActual === 'activo') {
-            nuevoEstado = 'inactivo';
-        } else if (estadoActual === 'inactivo') {
-            nuevoEstado = 'activo';
+        if (estadoActual == 1) {
+            nuevoEstado = '0';
+        } else if (estadoActual == 0) {
+            nuevoEstado = "1";
         }
 
         const sqlUpdateEstado = `UPDATE package_types SET status = ? WHERE packageType_id = ?`;
