@@ -388,6 +388,34 @@ export const getMovementsByFilter = async (req, res) => {
     }
 }
 
+export const getMovementDetailsById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const sql = `SELECT * FROM movement_details WHERE movement_id = ?;`;
+        const data = [id];
+        const [result] = await pool.query(sql, data);
+
+        //Revisar que llego información y ejecutar manejo de errores
+        if (result.length == 0) {
+            return res.status(200).json({
+                message: "No se encontraron detalles",
+                data: []
+            });
+        }
+
+        return res.status(200).json({
+            message: "Detalles listados",
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error
+        });
+    }
+}
+
 export const registerIncomingMovement = async (req, res) => {
     try {
         //Información desde el cuerpo de la petición
@@ -580,6 +608,7 @@ export const registerOutgoingMovement = async (req, res) => {
             const element = resultStockElement[0];
 
             if (element.stock < quantity2) {
+                await pool.query('ROLLBACK')
                 return res.status(409).json({
                     error: true,
                     message: `No hay suficientes ${element.name}s en stock`
