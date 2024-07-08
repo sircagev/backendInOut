@@ -8,7 +8,7 @@ route.post('/registrar', validar_usuario, registrarUsuario);
 route.get('/listar', ListarUsuario);
 route.get('/buscar/:id', BuscarUsuario);
 route.put('/actualizar/:id', ActualizarUsuario);
-route.put('/perfil/:codigo', ActualizarPerfil);
+route.put('/perfil/:id', ActualizarPerfil);
 route.put('/desactivar/:id', DesactivarUsuario); 
 route.put('/contrasena/:id', cambiarContrasena);
 
