@@ -12,6 +12,7 @@ export const ReportOfElements = async (req, res) => {
             c.name AS category,
             w.name AS warehouse,
             wl.name AS wlocation,
+            bli.quantity AS cant,
             COALESCE(SUM(md.quantity), 0) AS quantity,
             (e.stock + COALESCE(SUM(md.quantity), 0)) AS total
         FROM 
@@ -37,7 +38,8 @@ export const ReportOfElements = async (req, res) => {
             e.created_at,
             c.name,
             w.name,
-            wl.name
+            wl.name,
+            bli.quantity
         ORDER BY 
             e.element_id;
         `;
@@ -63,39 +65,36 @@ export const ReportingOfExpiredItems = async (req, res) => {
   try {
     const sql = `
         SELECT 
-            e.name AS element_name,
+            b.batch_id,
             e.element_id,
             e.stock,
+            e.name AS element_name,
             c.name AS category,
             et.name AS element_type,
             mu.name AS measurement_unit,
             b.batch_serial,
             DATE_FORMAT(b.expiration, '%d/%m/%Y') AS expiration_date,
-            w.name AS warehouse,
-            wl.name AS wlocation
-        FROM 
-            elements e
-        JOIN 
-            categories c ON e.category_id = c.category_id
-        JOIN 
-            element_types et ON e.elementType_id = et.elementType_id
-        LEFT JOIN 
-            measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
-        JOIN 
-            batches b ON e.element_id = b.element_id
-        JOIN 
-            batch_location_infos bli ON b.batch_id = bli.batch_id
-        JOIN 
-            warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-        JOIN 
-            warehouses w ON wl.warehouse_id = w.warehouse_id
-        WHERE 
-            b.expiration >= CURDATE()
-            AND (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY))
-        ORDER BY 
-            b.expiration ASC, e.name ASC;
-      `;
+            bl.quantity,
+            wl.name AS wlocation,
+            w.name AS warehouse
+        FROM
+            batches b
+            INNER JOIN elements e ON b.element_id = e.element_id
+            INNER JOIN categories c ON e.category_id = c.category_id
+            INNER JOIN element_types et ON e.elementType_id = et.elementType_id
+            LEFT JOIN measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
+            INNER JOIN batch_location_infos bl ON b.batch_id = bl.batch_id
+            INNER JOIN warehouse_locations wl ON bl.warehouseLocation_id = wl.warehouseLocation_id
+            INNER JOIN warehouses w ON wl.warehouse_id = w.warehouse_id
+        WHERE
+            b.expiration IS NOT NULL
+        AND (b.expiration <= CURRENT_DATE()
+            OR b.expiration BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY))
+        AND quantity >= 1
 
+        ORDER BY
+            b.expiration DESC;
+      `;
     const [result] = await pool.query(sql);
 
     if (result.length > 0) {
@@ -117,26 +116,19 @@ export const ExpiredModal = async (req, res) => {
   try {
     const sql = `
           SELECT 
-              COUNT(*) AS total_count
-          FROM 
-              elements e
-          JOIN 
-              categories c ON e.category_id = c.category_id
-          JOIN 
-              element_types et ON e.elementType_id = et.elementType_id
-          LEFT JOIN 
-              measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
-          JOIN 
-              batches b ON e.element_id = b.element_id
-          JOIN 
-              batch_location_infos bli ON b.batch_id = bli.batch_id
-          JOIN 
-              warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-          JOIN 
-              warehouses w ON wl.warehouse_id = w.warehouse_id
-          WHERE 
-              b.expiration >= CURDATE()
-              AND (b.expiration <= DATE_ADD(CURDATE(), INTERVAL 15 DAY));
+          COUNT(DISTINCT e.element_id) AS total_count
+          FROM batches b
+          INNER JOIN elements e ON b.element_id = e.element_id
+          INNER JOIN categories c ON e.category_id = c.category_id
+          INNER JOIN element_types et ON e.elementType_id = et.elementType_id
+          LEFT JOIN measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
+          INNER JOIN batch_location_infos bl ON b.batch_id = bl.batch_id
+          INNER JOIN warehouse_locations wl ON bl.warehouseLocation_id = wl.warehouseLocation_id
+          INNER JOIN warehouses w ON wl.warehouse_id = w.warehouse_id
+          WHERE b.expiration IS NOT NULL
+          AND (b.expiration <= CURRENT_DATE()
+              OR b.expiration BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY))
+          AND bl.quantity >= 1;
         `;
 
     const [rows] = await pool.query(sql);
@@ -213,74 +205,67 @@ export const ReportStockMin = async (req, res) => {
     const sql = `
             SELECT 
                 w.name AS warehouse,
-                e.name AS element_name, 
-                e.element_id AS element_id, 
-                wl.name AS wlocation, 
-                e.stock AS stock,
+                e.name AS element_name,
+                e.element_id,
+                wl.name AS wlocation,
+                e.stock,
+                bli.quantity AS quantity,
                 et.name AS element_type,
-                mu.name AS measurement_unit,
+                mu.name AS measurement,
                 c.name AS category,
-                GROUP_CONCAT(DISTINCT b.batch_serial ORDER BY b.batch_serial ASC SEPARATOR ', ') AS batch_serial,
-                COUNT(CASE WHEN md.loanStatus_id = '1' THEN 1 END) AS LoanElementsCount
+                b.batch_serial,
+                COALESCE(SUM(md.quantity), 0) AS LoanElementsCount
             FROM 
-                warehouses w
+                elements e
             JOIN 
-                warehouse_locations wl ON w.warehouse_id = wl.warehouse_id
+                categories c ON e.category_id = c.category_id
             JOIN 
-                batch_location_infos bli ON wl.warehouseLocation_id = bli.warehouseLocation_id
+                batches b ON e.element_id = b.element_id
             JOIN 
-                batches b ON bli.batch_id = b.batch_id
+                batch_location_infos bli ON b.batch_id = bli.batch_id
             JOIN 
-                elements e ON b.element_id = e.element_id
-            LEFT JOIN 
-                movement_details md ON b.batch_id = md.batch_id
-            LEFT JOIN 
+                warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
+            JOIN 
+                warehouses w ON wl.warehouse_id = w.warehouse_id
+            JOIN 
                 element_types et ON e.elementType_id = et.elementType_id
-            LEFT JOIN 
+            JOIN 
                 measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
             LEFT JOIN 
-                categories c ON e.category_id = c.category_id
+                movement_details md ON e.element_id = md.element_id AND md.loanStatus_id = '5'
             WHERE 
-                e.stock < 10 
-                AND e.status = '1'
+                e.status = '1'
+                AND e.stock < 10
             GROUP BY 
-                e.element_id, w.name, wl.name, et.name, mu.name, c.name
+                w.name,
+                e.name,
+                e.element_id,
+                wl.name,
+                e.stock,
+                bli.quantity,
+                et.name,
+                mu.name,
+                c.name,
+                b.batch_serial
             ORDER BY 
-                w.name, e.name;
-    `;
-    const [rows] = await pool.query(sql);
+                e.element_id;
+            `;
 
-    if (rows.length > 0) {
-      const report = {};
-      rows.forEach((row) => {
-        const element = {
-          warehouse: row.warehouse,
-          element_name: row.element_name,
-          element_id: row.element_id,
-          wlocation: row.wlocation,
-          Measurement_unit: row.measurement_unit,
-          element_type: row.element_type,
-          category: row.category,
-          stock: row.stock,
-          batch_serial: row.batch_serial,
-          LoanElementsCount: row.LoanElementsCount,
-        };
+        const [result] = await pool.query(sql);
 
-        if (!report[row.warehouse]) {
-          report[row.warehouse] = [];
+        if (result.length > 0) {
+          return res
+            .status(200)
+            .json({ message: "Report stock min", datos: result });
+        } else {
+          return res.status(200).json({
+            message: "No data were found to generate the report",
+          });
         }
-        report[row.warehouse].push(element);
-      });
-      return res.status(200).json(report);
-    } else {
-      return res
-        .status(200)
-        .json({ message: "No data were found to generate the report" });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
+      } catch (error) {
+        return res.status(500).json({ message: error });
+      }
+    };
 
 //Modal StockMin
 export const stockMinModal = async (req, res) => {
@@ -394,6 +379,7 @@ export const CarryOverActiveLoans = async (req, res) => {
     e.element_id,
     md.quantity,
     md.remarks,
+    md.movementDetail_id AS movement_id,
     CONCAT(ua.name, ' ', ua.lastname) AS user_application,
     CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
     ls.name AS loan_status,
