@@ -2,7 +2,10 @@ import { pool } from "../database/conexion.js";
 
 export const getBatches = async (req, res) => {
     try {
-        const sql = `SELECT * FROM batches;`;
+        const sql = `SELECT 
+                        b.*,
+                    FROM batches AS b
+                    WHERE quantity > 0;`;
         const [result] = await pool.query(sql);
 
         //Revisar que llego información y ejecutar manejo de errores
