@@ -5,9 +5,9 @@ import { RegistrarBodega, listarBodegas, BuscarBodega, ActualizarBodega, Desacti
 const route = Router();
 
 route.post('/registrar',  RegistrarBodega);
-route.get('/listar', validarToken, listarBodegas);
+route.get('/listar', listarBodegas);
 route.get('/buscar/:id', validarToken, BuscarBodega)
-route.put('/actualizar/:id', validarToken, ActualizarBodega);
-route.put('/desactivar/:id', validarToken, DesactivarBodega);
+route.put('/actualizar/:id', ActualizarBodega);
+route.put('/desactivar/:id', DesactivarBodega);
 
 export default route;
