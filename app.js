@@ -22,6 +22,7 @@ import reportesRoute from "./src/routes/Reportes.routes.yacb.js";
 import RouteContraseña from "./src/routes/password.router.js";
 import RouteRoles from "./src/routes/Roles.routes.js";
 import PositionsRoute from "./src/routes/Positions.routes.js";
+import batchesRoute from "./src/routes/Batches.routes.js"
 
 //Configuración
 const app = express(); // Crear la instancia de aplicación express
@@ -62,6 +63,7 @@ app.use('/reporte', reportesRoute);
 app.use('/contrasena', RouteContraseña);
 app.use('/roles', RouteRoles);
 app.use('/positions', PositionsRoute);
+app.use('/batches', batchesRoute);
 
 //Iniciar el servidor
 const startServer = async () => {
