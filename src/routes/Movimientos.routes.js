@@ -20,7 +20,8 @@ import {
     registerLoganMovement,
     updateLoganStatus,
     getMovements,
-    getMovementsByFilter
+    getMovementsByFilter,
+    getMovementDetailsById
 } from "../controllers/MovimientosController.js";
 
 //Instancia
@@ -40,6 +41,7 @@ route.use(validarToken);
 //rutas para el encargado y el admin
 route.get('/list', getMovements);
 route.get('/list/:filter', getMovementsByFilter);
+route.get('/movement-details/list/:id', getMovementDetailsById);
 
 //rutas para todos los usuarios
 route.post('/register-incoming', registerIncomingMovement);
