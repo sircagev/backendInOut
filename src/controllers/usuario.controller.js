@@ -84,8 +84,8 @@ export const registrarUsuario = async (req, res) => {
 };
 
 export const ListarUsuario = async (req, res) => {
-        try {
-            let [result] = await pool.query(`
+    try {
+        let [result] = await pool.query(`
                 SELECT 
                     u.user_id AS 'codigo',
                     CONCAT(u.name,' ',u.lastname) AS nombre,
@@ -105,19 +105,19 @@ export const ListarUsuario = async (req, res) => {
                 JOIN 
                     positions p ON u.position_id = p.position_id
             `);
-        
-            // Loguear el resultado obtenido de la base de datos
-            console.log('Resultado de la consulta:', result);
-        
-            // Transformar el estado a un formato legible por humanos
-            result = result.map(user => ({
-                ...user,
-                status: user.status === '1' ? 'Activo' : user.status === '0' ? 'Inactivo' : 'Desconocido'
-            }));
-        
-            // Loguear el resultado después de la transformación
-            console.log('Resultado después de la transformación:', result);
-    
+
+        // Loguear el resultado obtenido de la base de datos
+        console.log('Resultado de la consulta:', result);
+
+        // Transformar el estado a un formato legible por humanos
+        result = result.map(user => ({
+            ...user,
+            status: user.status === '1' ? 'Activo' : user.status === '0' ? 'Inactivo' : 'Desconocido'
+        }));
+
+        // Loguear el resultado después de la transformación
+        console.log('Resultado después de la transformación:', result);
+
 
         if (result.length > 0) {
             return res.status(200).json(result);
@@ -180,46 +180,43 @@ export const BuscarUsuario = async (req, res) => {
         return res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
+
 export const ActualizarUsuario = async (req, res) => {
     try {
         let user_id = req.params.id;
         let { name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
-    
-        // Validar que course_id solo se pueda actualizar si position_id es 1 (aprendiz)
-        if (position_id !== 1 && course_id !== undefined) {
-            console.log("No se puede actualizar el Id de Ficha para esta posición");
-            return res.status(400).json({ 'message': 'El Id de Ficha solo se puede actualizar para un aprendiz' });
-        }
-
         let sql, values;
-        if (course_id !== undefined) {
-            sql = `UPDATE users SET name = ?,
-                                    lastname = ?,
-                                    phone = ?,
-                                    email = ?,
-                                    identification = ?,
-                                    role_id = ?,
-                                    position_id = ?,
-                                    course_id = ?
-                                    WHERE user_id = ?`;
+
+        // Consulta SQL base para actualizar los campos comunes
+        sql = `UPDATE users SET name = ?,
+                                lastname = ?,
+                                phone = ?,
+                                email = ?,
+                                identification = ?,
+                                role_id = ?,
+                                position_id = ?`;
+
+        // Validar si el nuevo position_id es 1 (aprendiz) y course_id está presente
+        if (position_id === '1' && course_id !== undefined) {
+            sql += `, course_id = ?`;
             values = [name, lastname, phone, email, identification, role_id, position_id, course_id, user_id];
+        } else if (position_id !== 1) {
+            sql += `, course_id = ?`;
+            values = [name, lastname, phone, email, identification, role_id, position_id, null, user_id];
         } else {
-            sql = `UPDATE users SET name = ?,
-                                    lastname = ?,
-                                    phone = ?,
-                                    email = ?,
-                                    identification = ?,
-                                    role_id = ?,
-                                    position_id = ?
-                                    WHERE user_id = ?`;
             values = [name, lastname, phone, email, identification, role_id, position_id, user_id];
         }
+
+        // Agregar la condición WHERE user_id = ?
+        sql += ` WHERE user_id = ?`;
 
         console.log("Query a ejecutar:", sql);
         console.log("Valores:", values);
 
         let [rows] = await pool.query(sql, values);
+
+        console.log("Filas afectadas:", rows.affectedRows);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ 'message': 'Usuario actualizado con éxito' });
@@ -231,6 +228,7 @@ export const ActualizarUsuario = async (req, res) => {
         return res.status(500).json({ 'message': e.message });
     }
 };
+
 
 export const DesactivarUsuario = async (req, res) => {
     try {
@@ -278,7 +276,7 @@ export const ActualizarPerfil = async (req, res) => {
         // Obtener el user_id del token JWT
         const token = req.headers.authorization.split(' ')[1]; // Extraer el token del encabezado
         const decoded = jwt.verify(token, process.env.JWT_SECRET); // Decodificar el token
-        
+
         const user_id = decoded.userId; // Obtener el user_id del token decodificado
 
         // Obtener los datos del cuerpo de la solicitud
