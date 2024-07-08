@@ -272,12 +272,16 @@ export const stockMinModal = async (req, res) => {
   try {
     const sql = `
           SELECT 
-            COUNT(*) AS Total
+              COUNT(DISTINCT e.element_id) AS Total
           FROM 
-            elements e
+              elements e
+          JOIN 
+              batches b ON e.element_id = b.element_id
+          JOIN 
+              batch_location_infos bli ON b.batch_id = bli.batch_id
           WHERE
-            e.status = '1' 
-            AND e.stock < 10;
+              e.status = '1' 
+              AND e.stock < 10;
         `;
 
     const [rows] = await pool.query(sql);
