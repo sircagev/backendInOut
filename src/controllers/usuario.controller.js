@@ -7,7 +7,7 @@ export const registrarUsuario = async (req, res) => {
     try {
         console.log("Datos recibidos en el backend:", req.body);
 
-        let { user_id, name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
+        let {name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -58,13 +58,13 @@ export const registrarUsuario = async (req, res) => {
 
         let sql, values;
         if (course_id) {
-            sql = `INSERT INTO users (user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, password)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-            values = [user_id, name, lastname, phone, email, identification, role_id, position_id, course_id, hashedPassword];
-        } else {
-            sql = `INSERT INTO users (user_id, name, lastname, phone, email, identification, role_id, position_id, password)
+            sql = `INSERT INTO users (name, lastname, phone, email, identification, role_id, position_id, course_id, password)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-            values = [user_id, name, lastname, phone, email, identification, role_id, position_id, hashedPassword];
+            values = [name, lastname, phone, email, identification, role_id, position_id, course_id, hashedPassword];
+        } else {
+            sql = `INSERT INTO users (name, lastname, phone, email, identification, role_id, position_id, password)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            values = [name, lastname, phone, email, identification, role_id, position_id, hashedPassword];
         }
 
         console.log("Query a ejecutar:", sql);
