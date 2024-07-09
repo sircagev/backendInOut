@@ -21,7 +21,8 @@ import {
     updateLoganStatus,
     getMovements,
     getMovementsByFilter,
-    getMovementDetailsById
+    getMovementDetailsById,
+    getLoans
 } from "../controllers/MovimientosController.js";
 
 //Instancia
@@ -42,6 +43,7 @@ route.use(validarToken);
 route.get('/list', getMovements);
 route.get('/list/:filter', getMovementsByFilter);
 route.get('/movement-details/list/:id', getMovementDetailsById);
+route.get('/loans/list', getLoans);
 
 //rutas para todos los usuarios
 route.post('/register-incoming', registerIncomingMovement);

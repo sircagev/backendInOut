@@ -335,6 +335,66 @@ export const getMovements = async (req, res) => {
     }
 }
 
+export const getLoans = async (req, res) => {
+    try {
+        //Consulta trayendo la información completa de los movimientos
+        const movementsSql = `SELECT 
+                                m.movement_id AS 'codigo',
+                                m.created_at AS 'fecha',
+                                CONCAT(ua.name, ' ', ua.lastname) AS "nombre",
+                                ua.email AS 'correo',
+                                ua.identification AS 'identificacion',
+                                CONCAT(um.name, ' ', um.lastname) AS "usuario_manager",
+                                um.email AS 'correo_manager',
+                                um.identification AS 'identificacion_manager',
+                                CONCAT(urv.name, ' ', urv.lastname) AS "usuario_receiving",
+                                urv.email AS 'correo_receiving',
+                                urv.identification AS 'identificacion_receiving',
+                                CONCAT(urt.name, ' ', urt.lastname) AS "usuario_returning",
+                                urt.email AS 'correo_returning',
+                                urt.identification AS 'identificacion_returning',
+                                mt.name AS 'tipo',
+                                l.name AS status
+                            FROM movements AS m
+                            LEFT JOIN movement_types AS mt 
+                                ON m.movementType_id = mt.movementType_id
+                            LEFT JOIN users AS ua
+                                ON m.user_application = ua.user_id
+                            LEFT JOIN users AS um
+                                ON m.user_manager = um.user_id
+                            LEFT JOIN users AS urv
+                                ON m.user_receiving = urv.user_id
+                            LEFT JOIN users AS urt
+                                ON m.user_returning = urt.user_id
+                            LEFT JOIN loan_statuses AS l
+                                ON m.movementLoan_status = l.loanStatus_id
+                            WHERE m.movementType_id = 4
+                            ORDER BY codigo DESC;`;
+
+        //Ejecutar la consulta
+        const [result] = await pool.query(movementsSql);
+
+        console
+
+        //Revisar que llego información y ejecutar manejo de errores
+        if (result.length == 0) {
+            return res.status(200).json({
+                message: "No se encontraron prestamos",
+                data: []
+            });
+        }
+
+        return res.status(200).json({
+            message: "Prestamos listados",
+            data: result
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error
+        });
+    }
+}
+
 export const getMovementsByFilter = async (req, res) => {
     try {
 
@@ -586,11 +646,11 @@ export const registerOutgoingMovement = async (req, res) => {
         let detallesInfo = [];
 
         for (const detail of details) {
-            const { element_id, quantity, remarks } = detail;
+            const { element_id, quantity: detailquantity, remarks } = detail;
 
-            const quantity2 = quantity;
+            console.log(detailquantity)
 
-            if (!element_id || !quantity2) {
+            if (!element_id || !detailquantity) {
                 await pool.query("ROLLBACK");
                 return res.status(400).json({
                     error: true,
@@ -607,7 +667,7 @@ export const registerOutgoingMovement = async (req, res) => {
 
             const element = resultStockElement[0];
 
-            if (element.stock < quantity2) {
+            if (element.stock < detailquantity) {
                 await pool.query('ROLLBACK')
                 return res.status(409).json({
                     error: true,
@@ -625,7 +685,7 @@ export const registerOutgoingMovement = async (req, res) => {
 
             const [resultBatchStock] = await pool.query(sqlBatchStock, dataStockElement);
 
-            let remainingQuantity = quantity2;
+            let remainingQuantity = detailquantity;
             let quantityused2 = 0;
 
             for (const batch of resultBatchStock) {
@@ -714,7 +774,7 @@ export const registerOutgoingMovement = async (req, res) => {
 
 export const registerLoganMovement = async (req, res) => {
     try {
-        const { estimated_return, details } = req.body
+        const { estimated_return, details, user_application } = req.body
         const user = req.user;
 
         if (!details || !estimated_return) {
@@ -730,7 +790,7 @@ export const registerLoganMovement = async (req, res) => {
         //Crear un nuevo movimiento de salida
         const sqlLoanMovement = `INSERT INTO movements (movementType_id, user_application, movementLoan_status, estimated_return)
                                         VALUES (?, ?, ?, ?);`;
-        const dataLoanMovement = [3, user.user_id, 1, estimated_return];
+        const dataLoanMovement = [4, (user_application ? user_application : user.user_id), 1, estimated_return];
 
         const [result] = await pool.query(sqlLoanMovement, dataLoanMovement);
 
