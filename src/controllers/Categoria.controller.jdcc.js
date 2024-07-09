@@ -107,7 +107,7 @@ export const DesactivarCategoria = async (req, res) => {
         const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
-        // Determinar el nuevo estado según el estado actual jajajjaa
+        // Determinar el nuevo estado según el estado actual jajajjaa cris
         if (estadoActual == 1) {
             nuevoEstado = '0';
         } else if (estadoActual == 0) {
