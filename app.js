@@ -65,6 +65,7 @@ app.use('/roles', RouteRoles);
 app.use('/positions', PositionsRoute);
 app.use('/batches', batchesRoute);
 
+
 //Iniciar el servidor
 const startServer = async () => {
     app.listen(PORT, async () => {

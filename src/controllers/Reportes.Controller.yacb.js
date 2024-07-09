@@ -111,41 +111,6 @@ export const ReportingOfExpiredItems = async (req, res) => {
   }
 };
 
-//Modal Elementos expirados
-export const ExpiredModal = async (req, res) => {
-  try {
-    const sql = `
-          SELECT 
-          COUNT(DISTINCT e.element_id) AS total_count
-          FROM batches b
-          INNER JOIN elements e ON b.element_id = e.element_id
-          INNER JOIN categories c ON e.category_id = c.category_id
-          INNER JOIN element_types et ON e.elementType_id = et.elementType_id
-          LEFT JOIN measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
-          INNER JOIN batch_location_infos bl ON b.batch_id = bl.batch_id
-          INNER JOIN warehouse_locations wl ON bl.warehouseLocation_id = wl.warehouseLocation_id
-          INNER JOIN warehouses w ON wl.warehouse_id = w.warehouse_id
-          WHERE b.expiration IS NOT NULL
-          AND (b.expiration <= CURRENT_DATE()
-              OR b.expiration BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY))
-          AND bl.quantity >= 1;
-        `;
-
-    const [rows] = await pool.query(sql);
-
-    if (rows.length > 0) {
-      const quantityResults = rows[0].total_count;
-      return res.status(200).json(quantityResults);
-    } else {
-      return res
-        .status(200)
-        .json({ message: "No data were found to generate the report" });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
-
 //Reporetes Elementos Desactivados
 export const ReportOffItems = async (req, res) => {
   try {
@@ -247,6 +212,8 @@ export const ReportStockMin = async (req, res) => {
                 mu.name,
                 c.name,
                 b.batch_serial
+            HAVING 
+                e.stock + COALESCE(SUM(md.quantity), 0) < 10
             ORDER BY 
                 e.element_id;
             `;
@@ -265,34 +232,6 @@ export const ReportStockMin = async (req, res) => {
       } catch (error) {
         return res.status(500).json({ message: error });
       }
-    };
-
-//Modal StockMin
-export const stockMinModal = async (req, res) => {
-  try {
-    const sql = `
-          SELECT 
-            COUNT(*) AS Total
-          FROM 
-            elements e
-          WHERE
-            e.status = '1' 
-            AND e.stock < 10;
-        `;
-
-    const [rows] = await pool.query(sql);
-
-    if (rows.length > 0) {
-      const quantityResults = rows[0].Total;
-      return res.status(200).json(quantityResults);
-    } else {
-      return res
-        .status(200)
-        .json({ message: "No data were found to generate the report" });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
 };
 
 //Prestamos vencidos
@@ -336,39 +275,6 @@ export const CarryOverOfLoansDue = async (req, res) => {
     return res.status(500).json({ message: error });
   }
 };
-
-//Prestamos Vencidos modal
-export const LoansDueModal = async (req, res) => {
-  try {
-    const sql = `
-SELECT 
-    COUNT(*) AS total
-FROM 
-    users u
-LEFT JOIN 
-    movements m ON u.user_id = m.user_application
-LEFT JOIN 
-    movement_details md ON m.movement_id = md.movement_id
-LEFT JOIN 
-    elements e ON md.element_id = e.element_id
-WHERE 
-    m.estimated_return < CURDATE();
-      `;
-
-      const [rows] = await pool.query(sql);
-
-      if (rows.length > 0) {
-        const quantityResults = rows[0].total;
-        return res.status(200).json(quantityResults);
-      } else {
-        return res
-          .status(200)
-          .json({ message: "No data were found to generate the report" });
-      }
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  };
 
 //Préstamos activos
 export const CarryOverActiveLoans = async (req, res) => {
@@ -464,33 +370,6 @@ export const HistoryOfLoans = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({ message: error });
-  }
-};
-
-//Prestamos activos para modal
-export const CarryOverActiveLoansModal = async (req, res) => {
-  try {
-    const sql = `
-      SELECT COUNT(*) AS AmountOfLoans
-      FROM 
-          movements m
-      JOIN 
-          loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
-      WHERE 
-          m.movementLoan_status = '5' AND m.estimated_return >= CURDATE();
-    `;
-    const [result] = await pool.query(sql);
-
-    if (result.length > 0) {
-      const quantityResults = result[0].AmountOfLoans;
-      return res.status(200).json(quantityResults);
-    } else {
-      return res
-        .status(200)
-        .json({ message: "No data were found to generate the report" });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -621,7 +500,119 @@ export const ReportOfApplications = async (req, res) => {
   }
 };
 
-//Solicitudes Modal
+
+//Modals
+//Modal StockMin
+ export const stockMinModal = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              COUNT(*) AS Total
+          FROM (
+              SELECT 
+                  e.element_id,
+                  e.stock,
+                  COALESCE(SUM(md.quantity), 0) AS LoanElementsCount
+              FROM 
+                  elements e
+              JOIN 
+                  batches b ON e.element_id = b.element_id
+              JOIN 
+                  batch_location_infos bli ON b.batch_id = bli.batch_id
+              LEFT JOIN 
+                  movement_details md ON e.element_id = md.element_id AND md.loanStatus_id = '5'
+              WHERE
+                  e.status = '1'
+              GROUP BY 
+                  e.element_id, e.stock
+              HAVING 
+                  e.stock + COALESCE(SUM(md.quantity), 0) < 10
+          ) AS filtered_elements;
+        `;
+
+    const [rows] = await pool.query(sql);
+
+    if (rows.length > 0) {
+      const quantityResults = rows[0].Total;
+      return res.status(200).json(quantityResults);
+    } else {
+      return res
+        .status(200)
+        .json({ message: "No data were found to generate the report" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+//modal prestamos vencidos
+export const LoansDueModal = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              COUNT(*) AS total
+          FROM 
+              users u
+          LEFT JOIN 
+              movements m ON u.user_id = m.user_application
+          LEFT JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          LEFT JOIN 
+              elements e ON md.element_id = e.element_id
+          WHERE 
+              m.estimated_return < CURDATE();
+      `;
+      const [rows] = await pool.query(sql);
+
+      if (rows.length > 0) {
+        const quantityResults = rows[0].total;
+        return res.status(200).json(quantityResults);
+      } else {
+        return res
+          .status(200)
+          .json({ message: "No data were found to generate the report" });
+      }
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  };
+
+//modal elementos expirados
+export const ExpiredModal = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+          COUNT(DISTINCT e.element_id) AS total_count
+          FROM batches b
+          INNER JOIN elements e ON b.element_id = e.element_id
+          INNER JOIN categories c ON e.category_id = c.category_id
+          INNER JOIN element_types et ON e.elementType_id = et.elementType_id
+          LEFT JOIN measurement_units mu ON e.measurementUnit_id = mu.measurementUnit_id
+          INNER JOIN batch_location_infos bl ON b.batch_id = bl.batch_id
+          INNER JOIN warehouse_locations wl ON bl.warehouseLocation_id = wl.warehouseLocation_id
+          INNER JOIN warehouses w ON wl.warehouse_id = w.warehouse_id
+          WHERE b.expiration IS NOT NULL
+          AND (b.expiration <= CURRENT_DATE()
+              OR b.expiration BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY))
+          AND bl.quantity >= 1;
+        `;
+
+    const [rows] = await pool.query(sql);
+
+    if (rows.length > 0) {
+      const quantityResults = rows[0].total_count;
+      return res.status(200).json(quantityResults);
+    } else {
+      return res
+        .status(200)
+        .json({ message: "No data were found to generate the report" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+//modal solicitudes
 export const ApplicationsModal = async (req, res) => {
   try {
     const sql = `
@@ -655,3 +646,33 @@ export const ApplicationsModal = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+//modal prestamos activos
+export const CarryOverActiveLoansModal = async (req, res) => {
+  try {
+    const sql = `
+      SELECT COUNT(*) AS AmountOfLoans
+      FROM 
+          movements m
+      JOIN 
+          loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+      WHERE 
+          m.movementLoan_status = '5' AND m.estimated_return >= CURDATE();
+    `;
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      const quantityResults = result[0].AmountOfLoans;
+      return res.status(200).json(quantityResults);
+    } else {
+      return res
+        .status(200)
+        .json({ message: "No data were found to generate the report" });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}; 
+
+
+
