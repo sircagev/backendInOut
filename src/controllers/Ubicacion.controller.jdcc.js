@@ -40,7 +40,7 @@ export const ListarUbicacion = async (req, res) => {
         if(result.length > 0) {
             return res.status(200).json(result);
         } else {
-            return res.status(404).json({message: 'No se encontraron detalles de ubicación'});
+            return res.status(200).json({message: 'No se encontraron detalles de ubicación', data: []});
         }
 
         res.json(result);
