@@ -56,13 +56,13 @@ export const ListarElemetos = async (req, res) => {
                 e.name,
                 e.stock,
                 c.name AS category_id,
-                c.category_id AS id_category,
+                c.category_id AS code_Category,
                 n.name AS elementType_id,
-                n.elementType_id AS id_type,
+                n.elementType_id AS code_elementType,
                 me.name AS measurementUnit_id,
-                me.measurementUnit_id AS id_unit,
+                me.measurementUnit_id AS code_Unit,
                 em.name AS packageType_id,
-                em.packageType_id AS id_package,
+                em.packageType_id AS code_Package,
                 e.status,
                 DATE_FORMAT(e.created_at, '%d/%m/%Y') AS fecha_creación
             FROM 
