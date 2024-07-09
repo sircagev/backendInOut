@@ -1,20 +1,36 @@
 import { Router } from "express";
-import {ReportePrestamosActivos, ReporteEstadoPrestamos, ReporteHistorialPrestamos, ReporteMovimientosPorTipo, ReporteMovimientosPorUsuario, ReporteMovimientosPorFecha, ReportesUsuarios, ReportesBodegas, ReporteElementosPorCategoria, ReporteElementosPorUbicacion, ReporteInventarioBajo } from "../controllers/ReportesController.yacb.js";
+import {
+  CarryOverActiveLoans,
+  CarryOverOfLoansDue,
+  HistoryOfLoans,
+  CarryOverActiveLoansModal,
+  ReportOfMovements,
+  ReportOfApplications,
+  ReportStockMin,
+  stockMinModal,
+  LoansDueModal,
+  ReportOffItems,
+  ReportOfElements,
+  ExpiredModal,
+  ReportingOfExpiredItems,
+  ApplicationsModal,
+} from "../controllers/Reportes.Controller.yacb.js";
 
 const route = Router();
 
-route.get('/bodegas', ReportesBodegas);
-route.get('/movimientostipo', ReporteMovimientosPorTipo);
-route.get('/movimientosusuario', ReporteMovimientosPorUsuario);
-route.get('/movimientosfecha', ReporteMovimientosPorFecha);
-route.get('/movimientosactivos', ReportePrestamosActivos);
-route.get('/movimientosestado', ReporteEstadoPrestamos);
-route.get('/movimientoshistorial', ReporteHistorialPrestamos);
-route.get('/usuarios', ReportesUsuarios);
-route.get('/elementoscategoria', ReporteElementosPorCategoria);
-route.get('/elementosubicacion', ReporteElementosPorUbicacion);
-route.get('/elementosbajostock', ReporteInventarioBajo);
+route.get("/solicitudes", ReportOfApplications);
+route.get("/prestamosactivos", CarryOverActiveLoans);
+route.get("/prestamos", HistoryOfLoans);
+route.get("/prestamosvencidos", CarryOverOfLoansDue);
+route.get("/prestamosvencidosmodal", LoansDueModal);
+route.get("/prestamosactivosmodal", CarryOverActiveLoansModal);
+route.get("/movimientos", ReportOfMovements);
+route.get("/stockmin", ReportStockMin);
+route.get("/stockminmodal", stockMinModal);
+route.get("/elementosdesactivados", ReportOffItems);
+route.get("/elementosexpirados", ReportingOfExpiredItems);
+route.get("/elementosexpiradosmodal", ExpiredModal);
+route.get("/elementos", ReportOfElements);
+route.get("/solicitudesmodal", ApplicationsModal);
 
 export default route;
-
-

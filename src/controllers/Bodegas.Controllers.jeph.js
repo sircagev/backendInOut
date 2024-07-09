@@ -2,27 +2,16 @@ import { pool } from '../database/conexion.js';
 
 export const RegistrarBodega = async (req, res) => {
     try {
-        const { codigo_bodega, ubicacionBodega, nombreBodega } = req.body;
+        const { name } = req.body;
 
         // Agregamos un registro para ver los datos recibidos
         console.log("Datos recibidos para registrar bodega:", req.body);
 
- 
-        if (!ubicacionBodega) {
-            return res.status(400).json({ "message": "El campo de ubicación no puede estar vacío." });
-        }
-
-        const sql = `INSERT INTO bodega (codigo_Bodega, ubicacion, Nombre_bodega)
-                     VALUES (?, ?, ?)`;
-        const values = [codigo_bodega, ubicacionBodega, nombreBodega];
+        const sql = `INSERT INTO warehouses ( name )
+                     VALUES ( ?)`;
+        const values = [name];
 
         const [rows] = await pool.query(sql, values);
-
-
-
-
-
-        
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ "message": "Se registró con éxito la Bodega" });
@@ -37,21 +26,19 @@ export const RegistrarBodega = async (req, res) => {
     }
 };
 
-export const listarBodegas = async(req,res)=> {
-
-    try{
-        const [result] = await pool.query('select * from bodega');
+export const listarBodegas = async(req, res) => {
+    try {
+        const [result] = await pool.query("SELECT *, warehouse_id AS `codigo`, DATE_FORMAT(created_at, '%d/%m/%Y') FROM warehouses");
         
-        if(result.length>0){
+        if(result.length > 0) {
             return res.status(200).json(result); 
         } else {
-            return res.status(404).json({'message': 'No se econtró categorias'});
+            return res.status(200).json({ message: 'No se encontraron bodegas', data: [] });
         }
         
-    }catch(e){
-        return res.status(500).json({'message': 'error' + e});
+    } catch (e) {
+        return res.status(500).json({ 'message': 'error' + e });
     }
-
 };
 
 export const BuscarBodega = async (req, res) => {
@@ -75,14 +62,13 @@ export const BuscarBodega = async (req, res) => {
 export const ActualizarBodega = async (req, res) => {
     try {
         let id = req.params.id;
-        let { ubicacion, Nombre_bodega } = req.body;
+        let { name } = req.body;
         let sql = `
-            UPDATE bodega
-                SET ubicacion = ?,
-                Nombre_bodega = ?
-            WHERE codigo_Bodega = ?
+            UPDATE warehouses
+              SET  name = ?
+            WHERE warehouse_id = ?
         `;
-        let [rows] = await pool.query(sql, [ ubicacion, Nombre_bodega, id]);
+        let [rows] = await pool.query(sql, [ name, id]);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ "message": "Bodega actualizada con éxito" });
@@ -99,33 +85,39 @@ export const DesactivarBodega = async (req, res) => {
         const { id } = req.params;
 
         // Consulta SQL para obtener el estado actual de la bodega
-        const sqlGetEstado = `SELECT Estado FROM bodega WHERE codigo_Bodega = ?`;
+        const sqlGetEstado = `SELECT status FROM warehouses WHERE warehouse_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
         // Verificar si se encontró la bodega
         if (estadoResult.length === 0) {
-            return res.status(404).json({ message: "Bodega no encontrado." });
+            return res.status(404).json({ message: "Bodega no encontrada." });
         }
 
-        const estadoActual = estadoResult[0].Estado;
+        const estadoActual = estadoResult[0].status;
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
-        if (estadoActual === 'Activo') {
-            nuevoEstado = 'Inactivo';
-        } else if (estadoActual === 'Inactivo') {
-            nuevoEstado = 'Activo';
+        if (estadoActual === '1') {
+            nuevoEstado = '0';
+        } else if (estadoActual === '0') {
+            nuevoEstado = '1';
         }
 
         // Actualizar el estado en la base de datos
-        const sqlUpdateEstado = `UPDATE bodega SET Estado = ? WHERE codigo_Bodega = ?`;
+        const sqlUpdateEstado = `UPDATE warehouses SET status = ? WHERE warehouse_id = ?`;
         await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         // Consulta SQL para obtener las bodegas activas restantes
-        const sqlSelectActivos = `SELECT * FROM bodega WHERE Estado = 'Activo'`;
+        const sqlSelectActivos = `SELECT * FROM warehouses`;
         const [result] = await pool.query(sqlSelectActivos);
 
-        return res.status(200).json(result);
+        // Convertir los estados a 'activo' o 'inactivo' antes de enviar la respuesta
+        const bodegas = result.map(bodega => ({
+            ...bodega,
+            status: bodega.status === '1' ? 'activo' : 'inactivo'
+        }));
+
+        return res.status(200).json(bodegas);
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
