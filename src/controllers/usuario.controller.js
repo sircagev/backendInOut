@@ -273,36 +273,22 @@ export const DesactivarUsuario = async (req, res) => {
 // Endpoint para actualizar el perfil del usuario logueado
 export const ActualizarPerfil = async (req, res) => {
     try {
-        // Obtener el user_id del token JWT
-        const token = req.headers.authorization.split(' ')[1]; // Extraer el token del encabezado
-        const decoded = jwt.verify(token, process.env.JWT_SECRET); // Decodificar el token
 
-        const user_id = decoded.userId; // Obtener el user_id del token decodificado
+        const {id} = req.params; // Obtener el user_id del token decodificado
 
         // Obtener los datos del cuerpo de la solicitud
-        const { name, lastname, phone, email, identification, course_id } = req.body;
-
-        // Validación básica de los campos de entrada
-        if (!name || !lastname || !phone || !email || !identification || !course_id) {
-            return res.status(400).json({ message: 'Todos los campos son obligatorios' });
-        }
-
-        // Comprobar si el email tiene un formato válido
-        const emailRegex = /^\S+@\S+\.\S+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ message: 'El correo electrónico no es válido' });
-        }
+        const user = req.body;
 
         // Consulta SQL para actualizar el perfil del usuario
         const sql = `
             UPDATE users 
-            SET name = ?, lastname = ?, phone = ?, email = ?, identification = ?, course_id = ?
+            SET ?
             WHERE user_id = ?
         `;
 
-        const [rows] = await pool.query(sql, [name, lastname, phone, email, identification, course_id, user_id]);
+        const [rows] = await pool.query(sql, [user, id]);
 
-        if (rows.affectedRows) {
+        if (rows.affectedRows > 0) {
             return res.status(200).json({ message: 'Perfil actualizado con éxito' });
         } else {
             return res.status(404).json({ message: 'Usuario no encontrado' });
