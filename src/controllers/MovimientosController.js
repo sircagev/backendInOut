@@ -586,11 +586,11 @@ export const registerOutgoingMovement = async (req, res) => {
         let detallesInfo = [];
 
         for (const detail of details) {
-            const { element_id, quantity, remarks } = detail;
+            const { element_id, quantity: detailquantity, remarks } = detail;
 
-            const quantity2 = quantity;
+            console.log(detailquantity)
 
-            if (!element_id || !quantity2) {
+            if (!element_id || !detailquantity) {
                 await pool.query("ROLLBACK");
                 return res.status(400).json({
                     error: true,
@@ -607,7 +607,7 @@ export const registerOutgoingMovement = async (req, res) => {
 
             const element = resultStockElement[0];
 
-            if (element.stock < quantity2) {
+            if (element.stock < detailquantity) {
                 await pool.query('ROLLBACK')
                 return res.status(409).json({
                     error: true,
@@ -625,7 +625,7 @@ export const registerOutgoingMovement = async (req, res) => {
 
             const [resultBatchStock] = await pool.query(sqlBatchStock, dataStockElement);
 
-            let remainingQuantity = quantity2;
+            let remainingQuantity = detailquantity;
             let quantityused2 = 0;
 
             for (const batch of resultBatchStock) {
