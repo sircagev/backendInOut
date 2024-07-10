@@ -197,7 +197,7 @@ export const DesactivarElementos = async (req, res) => {
 
         // Verificar si el stock es mayor a 0
         if (stock > 0) {
-            return res.status(400).json({ message: "El stock del elemento es mayor a 0, no se puede desactivar" });
+            return res.status(400).json({ message: "El stock del elemento es mayor a 0, no se puede desactivar." });
         }
 
         let nuevoEstado;
