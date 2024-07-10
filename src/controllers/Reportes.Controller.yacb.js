@@ -4,53 +4,43 @@ import { pool } from "../database/conexion.js";
 export const ReportOfElements = async (req, res) => {
   try {
     const sql = `
-        SELECT 
-    e.element_id,
-    e.name AS element_name,
-    e.stock,
-    DATE_FORMAT(e.created_at, '%d/%m/%Y') AS created_at,
-    c.name AS category,
-    w.name AS warehouse,
-    wl.name AS wlocation,
-    bli.quantity AS cant,
-    COALESCE(SUM(CASE 
-                   WHEN m.movementType_id = 4 AND m.movementLoan_status = 5 THEN md.quantity 
-                   ELSE 0 
-                END), 0) AS quantity,
-    (e.stock + COALESCE(SUM(CASE 
-                              WHEN m.movementType_id = 4 AND m.movementLoan_status = 5 THEN md.quantity 
-                              ELSE 0 
-                           END), 0)) AS total
-FROM 
-    elements e
-JOIN 
-    categories c ON e.category_id = c.category_id
-JOIN 
-    batches b ON e.element_id = b.element_id
-JOIN 
-    batch_location_infos bli ON b.batch_id = bli.batch_id
-JOIN 
-    warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-JOIN 
-    warehouses w ON wl.warehouse_id = w.warehouse_id
-LEFT JOIN 
-    movement_details md ON e.element_id = md.element_id
-LEFT JOIN 
-    movements m ON md.movement_id = m.movement_id
-WHERE 
-    e.status = '1'
-GROUP BY 
-    e.element_id,
-    e.name,
-    e.stock,
-    e.created_at,
-    c.name,
-    w.name,
-    wl.name,
-    bli.quantity
-ORDER BY 
-    e.element_id;
-
+        SELECT
+            e.element_id,
+            e.name AS element_name,
+            e.stock,
+            DATE_FORMAT(e.created_at, '%d/%m/%Y') AS created_at,
+            c.name AS category,
+            w.name AS warehouse,
+            wl.name AS wlocation,
+            bli.quantity AS cant,
+            IFNULL(SUM(CASE WHEN m.movementType_id = 4 AND m.movementLoan_status IN (1, 2, 3, 5) THEN md.quantity ELSE 0 END), 0) AS quantity,
+            IFNULL(SUM(CASE WHEN m.movementType_id = 4 AND m.movementLoan_status IN (1, 2, 3, 5) THEN md.quantity ELSE 0 END), 0) + e.stock AS total
+        FROM
+            elements e
+        LEFT JOIN
+            categories c ON e.category_id = c.category_id
+        LEFT JOIN
+            batch_location_infos bli ON bli.batch_id = (
+                SELECT
+                    batch_id
+                FROM
+                    batches
+                WHERE
+                    element_id = e.element_id
+                ORDER BY
+                    created_at DESC
+                LIMIT 1
+            )
+        LEFT JOIN
+            warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
+        LEFT JOIN
+            warehouses w ON wl.warehouse_id = w.warehouse_id
+        LEFT JOIN
+            movement_details md ON md.element_id = e.element_id
+        LEFT JOIN
+            movements m ON md.movement_id = m.movement_id
+        GROUP BY
+            e.element_id, e.name, e.stock, e.created_at, c.name, w.name, wl.name, bli.quantity;
         `;
 
     const [result] = await pool.query(sql);
@@ -128,22 +118,11 @@ export const ReportOffItems = async (req, res) => {
               e.name AS element_name, 
               e.stock AS stock,
               DATE_FORMAT(e.updated_at, '%d/%m/%Y') AS update_at, 
-              w.name AS warehouse,
-              wl.name AS wlocation,
               c.name AS category,
               et.name AS element_type,
-              b.batch_serial AS batch_serial,
               mu.name AS measurement_unit
           FROM 
               elements e
-          JOIN 
-              batches b ON e.element_id = b.element_id
-          JOIN 
-              batch_location_infos bli ON b.batch_id = bli.batch_id
-          JOIN 
-              warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-          JOIN 
-              warehouses w ON wl.warehouse_id = w.warehouse_id
           LEFT JOIN 
               categories c ON e.category_id = c.category_id
           JOIN 
@@ -209,7 +188,6 @@ export const ReportStockMin = async (req, res) => {
                 e.stock + COALESCE(SUM(md.quantity), 0) < 10
             ORDER BY 
                 e.element_id;
-
             `;
 
         const [result] = await pool.query(sql);
@@ -232,26 +210,29 @@ export const ReportStockMin = async (req, res) => {
 export const CarryOverOfLoansDue = async (req, res) => {
   try {
     const sql = `
-                SELECT 
-                CONCAT(u.name, ' ', u.lastname) AS user_application,
-                u.identification,
-                u.phone,
-                md.remarks,
-                md.quantity,
-                DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
-                DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-                e.name AS element_name,
-                e.element_id
-            FROM 
-                users u
-            LEFT JOIN 
-                movements m ON u.user_id = m.user_application
-            LEFT JOIN 
-                movement_details md ON m.movement_id = md.movement_id
-            LEFT JOIN 
-                elements e ON md.element_id = e.element_id
-            WHERE 
-                m.estimated_return < CURDATE();
+        SELECT 
+            CONCAT(u.name, ' ', u.lastname) AS user_application,
+            u.identification,
+            u.phone,
+            md.remarks,
+            GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
+            DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
+            DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+            m.movement_id
+        FROM 
+            users u
+        LEFT JOIN 
+            movements m ON u.user_id = m.user_application
+        LEFT JOIN 
+            movement_details md ON m.movement_id = md.movement_id
+        LEFT JOIN 
+            elements e ON md.element_id = e.element_id
+        WHERE 
+            m.estimated_return < CURDATE()
+        GROUP BY 
+            u.name, u.lastname, u.identification, u.phone, md.remarks, m.estimated_return, m.created_at, m.movement_id
+        ORDER BY 
+            m.movement_id;
       `;
 
     const [result] = await pool.query(sql);
@@ -274,34 +255,35 @@ export const CarryOverOfLoansDue = async (req, res) => {
 export const CarryOverActiveLoans = async (req, res) => {
   try {
     const sql = `
-      SELECT 
-    e.name AS element_name,
-    e.element_id,
-    md.quantity,
-    md.remarks,
-    md.movementDetail_id AS movement_id,
-    CONCAT(ua.name, ' ', ua.lastname) AS user_application,
-    CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
-    ls.name AS loan_status,
-    DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-    DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return
-FROM 
-    movement_details md
-JOIN 
-    movements m ON md.movement_id = m.movement_id
-JOIN 
-    elements e ON md.element_id = e.element_id
-LEFT JOIN 
-    users ua ON m.user_application = ua.user_id
-LEFT JOIN 
-    users ur ON md.user_receiving = ur.user_id
-JOIN 
-    loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
-WHERE 
-    m.movementLoan_status = '5' 
-    AND m.estimated_return >= CURDATE();
-
-      `;
+            SELECT 
+                GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
+                md.remarks,
+                m.movement_id AS movement_id,
+                CONCAT(ua.name, ' ', ua.lastname) AS user_application,
+                CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
+                ls.name AS loan_status,
+                DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+                DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return
+            FROM 
+                movement_details md
+            JOIN 
+                movements m ON md.movement_id = m.movement_id
+            JOIN 
+                elements e ON md.element_id = e.element_id
+            LEFT JOIN 
+                users ua ON m.user_application = ua.user_id
+            LEFT JOIN 
+                users ur ON md.user_receiving = ur.user_id
+            JOIN 
+                loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+            WHERE 
+                m.movementLoan_status = '5' 
+                AND m.estimated_return >= CURDATE()
+            GROUP BY 
+                md.remarks, m.movement_id, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.created_at, m.estimated_return
+            ORDER BY 
+                m.movement_id;
+            `;
 
     const [result] = await pool.query(sql);
 
@@ -324,32 +306,35 @@ export const HistoryOfLoans = async (req, res) => {
   try {
     const sql = `
           SELECT 
-                e.name AS element_name,
-                e.element_id,
-                md.quantity,
-                md.remarks,
-                CONCAT(ua.name, ' ', ua.lastname) AS user_application,
-                CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
-                ls.name AS loan_status,
-                DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-                DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
-                DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
-                CONCAT(ur2.name, ' ', ur2.lastname) AS user_returning
-            FROM 
-                movement_details md
-            JOIN 
-                movements m ON md.movement_id = m.movement_id
-            JOIN 
-                elements e ON md.element_id = e.element_id
-            LEFT JOIN 
-                users ua ON m.user_application = ua.user_id
-            LEFT JOIN 
-                users ur ON m.user_receiving = ur.user_id
-            LEFT JOIN 
-                users ur2 ON m.user_returning = ur2.user_id
-            JOIN 
-                loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id;
-        `;
+              GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name,'') SEPARATOR ', ') AS element_name,
+              md.remarks,
+              CONCAT(ua.name, ' ', ua.lastname) AS user_application,
+              CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
+              ls.name AS loan_status,
+              m.movement_id,
+              DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+              DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
+              DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
+              CONCAT(ur2.name, ' ', ur2.lastname) AS user_returning
+          FROM 
+              movement_details md
+          JOIN 
+              movements m ON md.movement_id = m.movement_id
+          JOIN 
+              elements e ON md.element_id = e.element_id
+          LEFT JOIN 
+              users ua ON m.user_application = ua.user_id
+          LEFT JOIN 
+              users ur ON m.user_receiving = ur.user_id
+          LEFT JOIN 
+              users ur2 ON m.user_returning = ur2.user_id
+          JOIN 
+              loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+          GROUP BY 
+              m.movement_id, md.remarks, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.movement_id, m.created_at, m.estimated_return, m.actual_return, ur2.name, ur2.lastname
+          ORDER BY 
+              m.movement_id;
+          `;
 
     const [result] = await pool.query(sql);
 
@@ -452,31 +437,32 @@ export const ReportOfMovements = async (req, res) => {
 export const ReportOfApplications = async (req, res) => {
   try {
     const sql = `
-        SELECT 
-            CONCAT(u.name, ' ', u.lastname) AS user_applicant,
-            r.name AS role_name,
-            e.name AS element_name,
-            e.element_id,
-            u.course_id,
-            u.user_id,
-            DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-            DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
-            CONCAT(u2.name, ' ', u2.lastname) AS user_receiving
-        FROM 
-            movement_details md
-        JOIN 
-            movements m ON md.movement_id = m.movement_id
-        JOIN 
-            users u ON m.user_application = u.user_id
-        JOIN 
-            roles r ON u.role_id = r.role_id
-        JOIN 
-            elements e ON md.element_id = e.element_id
-        LEFT JOIN 
-            users u2 ON m.user_receiving = u2.user_id
-        ORDER BY
-            created_at DESC;
-      `;
+          SELECT 
+              CONCAT(u.name, ' ', u.lastname) AS user_applicant,
+              r.name AS role_name,
+              GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
+              u.course_id,
+              m.movement_id,
+              u.identification AS user_id,
+              u.phone,
+              DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
+          FROM 
+              movement_details md
+          JOIN 
+              movements m ON md.movement_id = m.movement_id
+          JOIN 
+              users u ON m.user_application = u.user_id
+          JOIN 
+              roles r ON u.role_id = r.role_id
+          JOIN 
+              elements e ON md.element_id = e.element_id
+          WHERE 
+              m.movementLoan_status = '1'
+          GROUP BY 
+              u.name, u.lastname, r.name, u.course_id, m.movement_id, u.identification, u.phone, m.created_at
+          ORDER BY
+              created_at DESC;
+          `;
 
     const [result] = await pool.query(sql);
 
@@ -517,6 +503,8 @@ export const ReportOfApplications = async (req, res) => {
                   movement_details md ON e.element_id = md.element_id AND md.loanStatus_id = '5'
               WHERE
                   e.status = '1'
+                  AND e.stock <10
+                  AND e.stock >0
               GROUP BY 
                   e.element_id, e.stock
               HAVING 
@@ -623,7 +611,9 @@ export const ApplicationsModal = async (req, res) => {
           JOIN 
               elements e ON md.element_id = e.element_id
           LEFT JOIN 
-              users u2 ON m.user_receiving = u2.user_id;
+              users u2 ON m.user_receiving = u2.user_id
+          WHERE
+              m.movementLoan_status = '1';
         `;
 
     const [rows] = await pool.query(sql);
