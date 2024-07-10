@@ -5,43 +5,52 @@ export const ReportOfElements = async (req, res) => {
   try {
     const sql = `
         SELECT 
-            e.element_id,
-            e.name AS element_name,
-            e.stock,
-            DATE_FORMAT(e.created_at, '%d/%m/%Y') AS created_at,
-            c.name AS category,
-            w.name AS warehouse,
-            wl.name AS wlocation,
-            bli.quantity AS cant,
-            COALESCE(SUM(md.quantity), 0) AS quantity,
-            (e.stock + COALESCE(SUM(md.quantity), 0)) AS total
-        FROM 
-            elements e
-        JOIN 
-            categories c ON e.category_id = c.category_id
-        JOIN 
-            batches b ON e.element_id = b.element_id
-        JOIN 
-            batch_location_infos bli ON b.batch_id = bli.batch_id
-        JOIN 
-            warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
-        JOIN 
-            warehouses w ON wl.warehouse_id = w.warehouse_id
-        LEFT JOIN 
-            movement_details md ON e.element_id = md.element_id
-        WHERE 
-            e.status = '1'
-        GROUP BY 
-            e.element_id,
-            e.name,
-            e.stock,
-            e.created_at,
-            c.name,
-            w.name,
-            wl.name,
-            bli.quantity
-        ORDER BY 
-            e.element_id;
+    e.element_id,
+    e.name AS element_name,
+    e.stock,
+    DATE_FORMAT(e.created_at, '%d/%m/%Y') AS created_at,
+    c.name AS category,
+    w.name AS warehouse,
+    wl.name AS wlocation,
+    bli.quantity AS cant,
+    COALESCE(SUM(CASE 
+                   WHEN m.movementType_id = 4 AND m.movementLoan_status = 5 THEN md.quantity 
+                   ELSE 0 
+                END), 0) AS quantity,
+    (e.stock + COALESCE(SUM(CASE 
+                              WHEN m.movementType_id = 4 AND m.movementLoan_status = 5 THEN md.quantity 
+                              ELSE 0 
+                           END), 0)) AS total
+FROM 
+    elements e
+JOIN 
+    categories c ON e.category_id = c.category_id
+JOIN 
+    batches b ON e.element_id = b.element_id
+JOIN 
+    batch_location_infos bli ON b.batch_id = bli.batch_id
+JOIN 
+    warehouse_locations wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
+JOIN 
+    warehouses w ON wl.warehouse_id = w.warehouse_id
+LEFT JOIN 
+    movement_details md ON e.element_id = md.element_id
+LEFT JOIN 
+    movements m ON md.movement_id = m.movement_id
+WHERE 
+    e.status = '1'
+GROUP BY 
+    e.element_id,
+    e.name,
+    e.stock,
+    e.created_at,
+    c.name,
+    w.name,
+    wl.name,
+    bli.quantity
+ORDER BY 
+    e.element_id;
+
         `;
 
     const [result] = await pool.query(sql);
