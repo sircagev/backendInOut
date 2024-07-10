@@ -97,6 +97,7 @@ export const DesactivarEmpaque = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Verificar si el empaque existe
         const sqlGetEstado = `SELECT status FROM package_types WHERE packageType_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
@@ -104,25 +105,30 @@ export const DesactivarEmpaque = async (req, res) => {
             return res.status(404).json({ message: "Tipo de Empaque no encontrado." });
         }
 
-        const estadoActual = estadoResult[0].status;
-        let nuevoEstado;
+        // Verificar si el empaque está siendo utilizado
+        const sqlCheckUso = `SELECT COUNT(*) AS count FROM elements WHERE packageType_id = ?`;
+        const [usoResult] = await pool.query(sqlCheckUso, [id]);
 
-        if (estadoActual == 1) {
-            nuevoEstado = '0';
-        } else if (estadoActual == 0) {
-            nuevoEstado = "1";
+        if (usoResult[0].count > 0) {
+            return res.status(400).json({ message: "El empaque esta siendo utilizado por uno o más elementos." });
         }
+
+        // Cambiar el estado del empaque
+        const estadoActual = estadoResult[0].status;
+        let nuevoEstado = estadoActual == 1 ? '0' : '1';
+        let estadoDescripcion = nuevoEstado == '1' ? 'activo' : 'inactivo';
 
         const sqlUpdateEstado = `UPDATE package_types SET status = ? WHERE packageType_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: `Empaque actualizado a estado ${nuevoEstado} con éxito.` });
+            return res.status(200).json({ message: `Empaque actualizado a estado ${estadoDescripcion} con éxito.` });
         } else {
-            return res.status(404).json({ "message": "Empaque no actualizado." });
+            return res.status(404).json({ message: "Empaque no actualizado." });
         }
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
+
