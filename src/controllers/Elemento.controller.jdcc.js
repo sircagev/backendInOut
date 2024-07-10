@@ -185,7 +185,7 @@ export const DesactivarElementos = async (req, res) => {
         const { id } = req.params;
 
         // Consulta SQL para obtener el estado actual del elemento
-        const sqlGetEstado = `SELECT status FROM elements WHERE element_id = ?`;
+        const sqlGetEstado = `SELECT status, stock FROM elements WHERE element_id = ?`;
         const [estadoResult] = await pool.query(sqlGetEstado, [id]);
 
         // Verificar si se encontró el elemento
@@ -193,13 +193,19 @@ export const DesactivarElementos = async (req, res) => {
             return res.status(404).json({ message: "Elemento no encontrado." });
         }
 
-        const estadoActual = estadoResult[0].status;
+        const { status: estadoActual, stock } = estadoResult[0];
+
+        // Verificar si el stock es mayor a 0
+        if (stock > 0) {
+            return res.status(400).json({ message: "El stock del elemento es mayor a 0, no se puede desactivar" });
+        }
+
         let nuevoEstado;
 
         // Determinar el nuevo estado según el estado actual
         if (estadoActual == 1) {
             nuevoEstado = "0";
-        } else if (estadoActual == 0 ) {
+        } else if (estadoActual == 0) {
             nuevoEstado = "1";
         } else {
             // En caso de un estado no esperado, mantener el estado actual
@@ -211,7 +217,7 @@ export const DesactivarElementos = async (req, res) => {
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado} con éxito.` });
+            return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado == 1 ? 'activo' : 'inactivo'} con éxito.` });
         } else {
             return res.status(404).json({ message: "Elemento no actualizado." });
         }

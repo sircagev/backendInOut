@@ -8,6 +8,6 @@ route.post('/registrar', RegistrarMedida);
 route.get('/listar', ListarMedida);
 route.get('/buscar/:id', validarToken, Buscarmedida);
 route.put('/actualizar/:id', ActualizarMedida);
-route.put('/desactivar/:id', validarToken, DesactivarMedida);
+route.put('/desactivar/:id', DesactivarMedida);
 
 export default route;
