@@ -212,17 +212,20 @@ export const DesactivarElementos = async (req, res) => {
             nuevoEstado = estadoActual;
         }
 
-        // Actualizar el estado en la base de datos
-        const sqlUpdateEstado = `UPDATE elements SET status = ? WHERE element_id = ?`;
-        const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
+        // Actualizar el estado en la base de datos solo si el stock es 0
+        if (stock === 0) {
+            const sqlUpdateEstado = `UPDATE elements SET status = ? WHERE element_id = ?`;
+            const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
-        if (result.affectedRows > 0) {
-            return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado == 1 ? 'activo' : 'inactivo'} con éxito.` });
-        } else {
-            return res.status(404).json({ message: "Elemento no actualizado." });
+            if (result.affectedRows > 0) {
+                return res.status(200).json({ message: `Elemento actualizado a estado ${nuevoEstado == 1 ? 'activo' : 'inactivo'} con éxito.` });
+            } else {
+                return res.status(404).json({ message: "Elemento no actualizado." });
+            }
         }
 
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
+
