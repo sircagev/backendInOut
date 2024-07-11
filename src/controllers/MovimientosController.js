@@ -987,6 +987,169 @@ export const registerLoganMovement = async (req, res) => {
     }
 }
 
+export const registerLoganMovementInWarehouse = async (req, res) => {
+    try {
+        const { estimated_return, details, user_application } = req.body
+        const user = req.user;
+
+        if (user.user_id == 3) {
+            return res.status(401).json({
+                error: true,
+                message: 'No tiene permisos suficientes'
+            })
+        }
+
+        if (!details || !estimated_return) {
+            return res.status(400).json({
+                error: true,
+                message: 'Todos los campos son requeridos'
+            });
+        }
+
+        //Iniciar un transacción en Sql
+        await pool.query("START TRANSACTION");
+
+        //Crear un nuevo movimiento de salida
+        const sqlLoanMovement = `INSERT INTO movements (movementType_id, user_manager, user_application, movementLoan_status, estimated_return, user_receiving)
+                                        VALUES (?, ?, ?, ?, ?, ?);`;
+        const dataLoanMovement = [4, user.user_id, (user_application ? user_application : user.user_id), 5, estimated_return, user_application];
+
+        const [result] = await pool.query(sqlLoanMovement, dataLoanMovement);
+
+        //Obtener ID del movimiento recién creado
+        const movementID = result.insertId;
+
+        let detallesInfo = [];
+
+        for (const detail of details) {
+            const { element_id, quantity, remarks } = detail;
+
+            if (!element_id || !quantity) {
+                await pool.query("ROLLBACK");
+                return res.status(400).json({
+                    error: true,
+                    message: 'Todos los campos son requeridos'
+                });
+            }
+
+            const remarksTrue = !remarks ? null : remarks;
+
+            //Validar que la cantidad a reservar este disponible
+
+            //Traer el Stock
+            const sqlStockElement = `SELECT stock, name FROM elements WHERE element_id = ?;`;
+            const dataStockElement = [element_id];
+            const [resultStockElement] = await pool.query(sqlStockElement, dataStockElement);
+
+            const element = resultStockElement[0];
+
+            if (element.stock < quantity) {
+                await pool.query('ROLLBACK')
+                return res.status(409).json({
+                    error: true,
+                    message: `No hay suficientes ${element.name}s disponibles, hay ${element.stock} disponibles en stock`
+                })
+            }
+
+            //Validar cuantos lotes existen y de cual se puede sacar o sacar de varios
+            const sqlBatchStock = `SELECT batch_id, quantity
+                                    FROM batches
+                                    WHERE element_id = ? 
+                                        AND quantity > 0
+                                        AND status = '1'
+                                    ORDER BY created_at ASC;`;
+
+            const [resultBatchStock] = await pool.query(sqlBatchStock, dataStockElement);
+
+            let remainingQuantity = quantity;
+            let quantityused2 = 0;
+
+            for (const batch of resultBatchStock) {
+                const { batch_id, quantity: bachtQuantity } = batch
+
+                if (remainingQuantity <= 0) {
+                    break;
+                }
+
+                let quantityToUse = Math.min(remainingQuantity, bachtQuantity);
+
+                const sqlBatchLocations = `SELECT * FROM batch_location_infos WHERE batch_id = ? AND quantity > 0;`;
+                const dataBatchLocations = [batch_id];
+                const [resultBatchLocations] = await pool.query(sqlBatchLocations, dataBatchLocations);
+
+                let quantityUsed = 0;
+
+                //Necesito empezar a sustraer cantidades del resultBatchLocations
+                for (const location of resultBatchLocations) {
+                    const { batchLocationInfo_id, quantity: locationQuantity } = location;
+
+                    if (quantityToUse <= 0) {
+                        break;
+                    }
+
+                    // Determinar cuánto tomar de esta ubicación específica
+                    const quantityFromLocation = Math.min(quantityToUse, locationQuantity);
+
+                    // Actualizar la cantidad en la ubicación específica
+                    const updatedQuantity = locationQuantity - quantityFromLocation;
+                    const sqlUpdateLocation = `UPDATE batch_location_infos SET quantity = ? WHERE batchLocationInfo_id = ?;`;
+                    const dataUpdateLocation = [updatedQuantity, batchLocationInfo_id];
+                    await pool.query(sqlUpdateLocation, dataUpdateLocation);
+
+                    // Restar la cantidad usada del total restante
+                    quantityToUse -= quantityFromLocation;
+                    remainingQuantity -= quantityFromLocation;
+                    quantityUsed += quantityFromLocation;
+                    quantityused2 += quantityFromLocation;
+                }
+
+                // Actualizar el stock del lote en la tabla `batches`
+                const updatedBatchQuantity = bachtQuantity - quantityUsed;
+                const sqlUpdateBatchQuantity = `UPDATE batches SET quantity = ? WHERE batch_id = ?;`;
+                const dataUpdateBatchQuantity = [updatedBatchQuantity, batch_id];
+                await pool.query(sqlUpdateBatchQuantity, dataUpdateBatchQuantity);
+
+                // Registrar como nuevo detalle movimiento
+                const sqlInsertMovementDetail = `INSERT INTO movement_details(
+                                                    movement_id, element_id, batch_id, quantity, remarks, loanStatus_id, user_receiving)
+                                                 VALUES (?, ?, ?, ?, ?, ?, ?);`;
+                const dataInsertMovementDetail = [movementID, element_id, batch_id, quantityUsed, remarksTrue, 5, user_application];
+
+                const [resultInsertMovementDetail] = await pool.query(sqlInsertMovementDetail, dataInsertMovementDetail);
+
+                detallesInfo.push(resultInsertMovementDetail);
+
+                //Actualizar Stock elemento
+
+                const lastStock = element.stock;
+                const newStock = lastStock - quantityused2;
+
+                const sqlAddStockElement = `UPDATE elements SET stock = ? WHERE element_id = ?;`;
+                const dataAddStockElement = [newStock, element_id];
+
+                const [resultAddStockElement] = await pool.query(sqlAddStockElement, dataAddStockElement);
+
+            }
+        }
+
+        //Confirmar la transacción
+        await pool.query("COMMIT");
+
+        return res.status(200).json({
+            message: "Registro de Préstamo Exitoso",
+            data: result,
+            detalles: detallesInfo
+        });
+    } catch (error) {
+        //Devolver todos los cambios
+        await pool.query("ROLLBACK");
+        //Enviar error por servidor
+        return res.status(500).json({
+            message: error
+        });
+    }
+}
+
 export const updateLoganStatus = async (req, res) => {
     try {
         const { details } = req.body
