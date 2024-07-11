@@ -23,7 +23,8 @@ import {
     getMovementsByFilter,
     getMovementDetailsById,
     getLoans,
-    getLoanByMovmentId
+    getLoanByMovmentId,
+    registerLoganMovementInWarehouse
 } from "../controllers/MovimientosController.js";
 
 //Instancia
@@ -52,6 +53,7 @@ route.get('/loans/list/:id', getLoanByMovmentId);
 route.post('/register-incoming', registerIncomingMovement);
 route.post('/register-outgoing', registerOutgoingMovement);
 route.post('/register-loan', registerLoganMovement);
+route.post('/register-loan-in-warehouse', registerLoganMovementInWarehouse);
 route.put('/update-logan-status/:id', updateLoganStatus);
 
 route.get('/listar', ListarTodosMovimientos);
