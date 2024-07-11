@@ -24,14 +24,14 @@ export const validarUsuario = async (req, res) => {
     // Verificar si el estado del usuario es "Activo"
     if (user.status != 1) {
       return res.status(401).json({
-        message: "Usuario ha sido desactivado, hable con el administrador del sitio"
+        message: "Usuario desactivado, Contacte al administrador"
       })
     }
 
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
-      return res.status(401).json({
+      return res.status(403).json({
         error: true,
         message: "Contraseña incorrecta. Acceso denegado"
       })
