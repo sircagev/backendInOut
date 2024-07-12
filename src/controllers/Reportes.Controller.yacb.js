@@ -176,7 +176,6 @@ export const ReportStockMin = async (req, res) => {
             WHERE 
                 e.status = '1'
                 AND e.stock < 10
-                AND e.stock > 0
             GROUP BY 
                 e.element_id,
                 e.name,
@@ -531,18 +530,21 @@ export const ReportOfApplications = async (req, res) => {
 export const LoansDueModal = async (req, res) => {
   try {
     const sql = `
-          SELECT 
-              COUNT(*) AS total
-          FROM 
-              users u
-          LEFT JOIN 
-              movements m ON u.user_id = m.user_application
-          LEFT JOIN 
-              movement_details md ON m.movement_id = md.movement_id
-          LEFT JOIN 
-              elements e ON md.element_id = e.element_id
-          WHERE 
-              m.estimated_return < CURDATE();
+        SELECT 
+          m.movement_id,
+          COUNT(*) OVER() AS total
+        FROM 
+          movements m
+        LEFT JOIN 
+          users u ON u.user_id = m.user_application
+        LEFT JOIN 
+          movement_details md ON m.movement_id = md.movement_id
+        LEFT JOIN 
+          elements e ON md.element_id = e.element_id
+        WHERE 
+          m.estimated_return < CURDATE()
+        GROUP BY
+          m.movement_id;
       `;
       const [rows] = await pool.query(sql);
 
@@ -599,21 +601,24 @@ export const ApplicationsModal = async (req, res) => {
   try {
     const sql = `
           SELECT 
+              m.movement_id,
               COUNT(*) AS count
           FROM 
-              movement_details md
+              movements m
           JOIN 
-              movements m ON md.movement_id = m.movement_id
+              movement_details md ON m.movement_id = md.movement_id
           JOIN 
               users u ON m.user_application = u.user_id
           JOIN 
               roles r ON u.role_id = r.role_id
           JOIN 
               elements e ON md.element_id = e.element_id
-          LEFT JOIN 
-              users u2 ON m.user_receiving = u2.user_id
-          WHERE
-              m.movementLoan_status = '1';
+          WHERE 
+              m.movementLoan_status = '1'
+          GROUP BY 
+              m.movement_id
+          ORDER BY
+              m.movement_id;
         `;
 
     const [rows] = await pool.query(sql);
@@ -658,5 +663,201 @@ export const CarryOverActiveLoansModal = async (req, res) => {
   }
 }; 
 
+//Pastel
+//Movimientos
+export const PieOfMovements = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              DATE_FORMAT(m.created_at, '%Y/%m') AS created_at,
+              m.movement_id,
+              mt.name AS movement_type,
+              COUNT(*) AS cantidad
+          FROM 
+              movements m
+          JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          JOIN 
+              movement_types mt ON m.movementType_id = mt.movementType_id
+          WHERE 
+              m.movementType_id IN (1, 2)
+          GROUP BY 
+              m.movement_id
+          ORDER BY 
+              mt.name ASC;
+     `;
 
+    const [result] = await pool.query(sql);
 
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Pie of Movements", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+//PréstamosPie
+export const PieOfLoans = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              element_name,
+              total_quantity,
+              (total_quantity / (SELECT SUM(md.quantity) FROM movement_details md)) * 100 AS percentage
+          FROM (
+              SELECT 
+                  e.name AS element_name,
+                  SUM(md.quantity) AS total_quantity
+              FROM 
+                  movement_details md
+              JOIN 
+                  elements e ON md.element_id = e.element_id
+              GROUP BY 
+                  e.name
+              ORDER BY 
+                  total_quantity DESC
+              LIMIT 5
+          ) AS subquery
+          ORDER BY total_quantity DESC;
+          `;
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Pie of Loans", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+//PréstamosApilados
+export const PieOfLoansApi = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              DATE_FORMAT(m.created_at, '%Y-%m') AS month_year,
+              COUNT(*) AS Total
+          FROM 
+              movements m
+          JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          WHERE 
+              m.movementType_id = '4'
+          GROUP BY 
+              DATE_FORMAT(m.created_at, '%Y-%m')
+          ORDER BY 
+              DATE_FORMAT(m.created_at, '%Y-%m');
+          `;
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Pie of Loans", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+//Salidas Consumibles
+export const PieConsumable = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              e.name AS name,
+              m.created_at AS date,
+              ROUND((SUM(md.quantity) / total_movements.total_quantity * 100), 2) AS Percentage
+          FROM 
+              movements m
+          JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          JOIN 
+              elements e ON md.element_id = e.element_id
+          JOIN (
+              SELECT 
+                  m.movementType_id,
+                  SUM(md.quantity) AS total_quantity
+              FROM 
+                  movements m
+              JOIN 
+                  movement_details md ON m.movement_id = md.movement_id
+              WHERE 
+                  m.movementType_id = '2'
+              GROUP BY 
+                  m.movementType_id
+          ) AS total_movements ON total_movements.movementType_id = m.movementType_id
+          WHERE 
+              m.movementType_id = '2'
+          GROUP BY 
+              e.name, m.created_at, total_movements.total_quantity
+          ORDER BY 
+              Percentage DESC
+          LIMIT 5;
+          `;
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Pie of Consumables", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
+//PréstamosApilados
+export const PieOfMovementsApi = async (req, res) => {
+  try {
+    const sql = `
+          SELECT 
+              DATE_FORMAT(m.created_at, '%Y-%m') AS date,
+              SUM(md.quantity) AS Total
+          FROM 
+              movements m
+          JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          WHERE 
+              m.movementType_id = '2'
+          GROUP BY 
+              DATE_FORMAT(m.created_at, '%Y-%m')
+          ;
+          `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Bar of Consumables", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
