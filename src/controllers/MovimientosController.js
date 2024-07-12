@@ -1569,10 +1569,6 @@ WHERE batch_id = ?;`
 
                         comment = 'Completado y devuelto';
                     }
-
-
-
-
                 }
             }
 
