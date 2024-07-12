@@ -1152,11 +1152,9 @@ export const registerLoganMovementInWarehouse = async (req, res) => {
 
 export const updateLoganStatus = async (req, res) => {
     try {
-        const { details } = req.body
+        const { details, user_returning } = req.body
         const { id } = req.params;
         const user = req.user;
-
-        console.log(user)
 
         const sqlMovement = `SELECT * FROM movements WHERE movement_id = ?;`
         const dataMovement = [id];
@@ -1482,7 +1480,10 @@ export const updateLoganStatus = async (req, res) => {
         }
 
         if (statusMovement == 5) {
-            if (user.role_id != 1 || user.role_id != 2) {
+
+            console.log(user)
+
+            if (user.role_id != 1 && user.role_id != 2) {
                 await pool.query('ROLLBACK');
                 return res.status(401).json({
                     error: true,
@@ -1490,7 +1491,7 @@ export const updateLoganStatus = async (req, res) => {
                 })
             }
 
-            if (!details || details.length === 0) {
+            if (!details || details.length === 0 || !user_returning) {
                 await pool.query('ROLLBACK');
                 return res.status(400).json({
                     error: true,
@@ -1504,13 +1505,13 @@ export const updateLoganStatus = async (req, res) => {
             //Este solo servirá para ir revisando cada vez que se entrega algo
             for (const detail of details) {
 
-                const { loanStatus_id, movementDetail_id } = detail;
+                const { loanStatus_id, movementDetail_id, remarks } = detail;
 
                 if (!loanStatus_id || !movementDetail_id) {
                     await pool.query('ROLLBACK');
                     return res.status(400).json({
                         error: true,
-                        message: 'Los datos no se han enviado correctamente, intentelo d enuevo por favor'
+                        message: 'Los datos no se han enviado correctamente, intentelo de nuevo por favor'
                     })
                 }
 
@@ -1527,59 +1528,71 @@ export const updateLoganStatus = async (req, res) => {
                 }
 
                 if (loanStatus_id == 6) {
-                    const sqlMovementDetail = `SELECT * FROM movement_details WHERE movementDetail_id = ? AND loanStatus_id = ?;`;
+                    const sqlMovementDetail = `SELECT * FROM movement_details WHERE movementDetail_id = ?;`;
                     const dataMovementDetail = [movementDetail_id, 5];
                     const [result] = await pool.query(sqlMovementDetail, dataMovementDetail);
 
                     const movementDetail = result[0];
+                    console.log(movementDetail)
 
-                    // devolver el stock reservado a su ubicacion
-                    const sqlReturnStockBatchLocation = `UPDATE batch_location_infos SET quantity = ?
-                                                                WHERE batch_id = ?;`
-                    const dataReturnStockBatchLocation = [movementDetail.quantity, movementDetail.batch_id];
-                    const [resultRetutnStockBatchLocation] = await pool.query(sqlReturnStockBatchLocation, dataReturnStockBatchLocation);
+                    if (movementDetail.loanStatus_id == 5) {
+                        const updateDetail = `UPDATE movement_details SET loanStatus_id = ?, remarks = ?, user_returning = ? WHERE movementDetail_id = ?;`;
+                        const dataUpdateDetail = [loanStatus_id, remarks, user_returning, movementDetail_id];
+                        await pool.query(updateDetail, dataUpdateDetail);
 
-                    //Por cada detalle de movimiento devolver el stock reservado al lote
-                    const sqlReturnStockBatch = `UPDATE batches SET quantity = ?
+                        // devolver el stock reservado a su ubicacion
+                        const sqlReturnStockBatchLocation = `UPDATE batch_location_infos SET quantity = ?
                     WHERE batch_id = ?;`
-                    const dataReturnStockBatch = [movementDetail.quantity, movementDetail.batch_id];
-                    const [resultRetutnStockBatch] = await pool.query(sqlReturnStockBatch, dataReturnStockBatch);
+                        const dataReturnStockBatchLocation = [movementDetail.quantity, movementDetail.batch_id];
+                        const [resultRetutnStockBatchLocation] = await pool.query(sqlReturnStockBatchLocation, dataReturnStockBatchLocation);
 
-                    //Por cada detalle de movimiento devolver el stock reservado al elemento
-                    //Primero traemos el stock completo del elemento
-                    const sqlStock = `SELECT stock FROM elements WHERE element_id = ?;`;
-                    const dataStock = [movementDetail.element_id];
-                    const [resultStock] = await pool.query(sqlStock, dataStock);
+                        //Por cada detalle de movimiento devolver el stock reservado al lote
+                        const sqlReturnStockBatch = `UPDATE batches SET quantity = ?
+WHERE batch_id = ?;`
+                        const dataReturnStockBatch = [movementDetail.quantity, movementDetail.batch_id];
+                        const [resultRetutnStockBatch] = await pool.query(sqlReturnStockBatch, dataReturnStockBatch);
 
-                    const stock = resultStock[0].stock;
+                        //Por cada detalle de movimiento devolver el stock reservado al elemento
+                        //Primero traemos el stock completo del elemento
+                        const sqlStock = `SELECT stock FROM elements WHERE element_id = ?;`;
+                        const dataStock = [movementDetail.element_id];
+                        const [resultStock] = await pool.query(sqlStock, dataStock);
 
-                    const newStock = stock + movementDetail.quantity;
+                        const stock = resultStock[0].stock;
 
-                    const sqlReturnStockElement = `UPDATE elements SET stock = ?
-                                                            WHERE element_id = ?;`
-                    const dataReturnStockElement = [newStock, movementDetail.element_id];
-                    const [resultRetutnStockElement] = await pool.query(sqlReturnStockElement, dataReturnStockElement);
+                        const newStock = stock + movementDetail.quantity;
 
-                    comment = 'Completado y devuelto';
+                        const sqlReturnStockElement = `UPDATE elements SET stock = ?
+                WHERE element_id = ?;`
+                        const dataReturnStockElement = [newStock, movementDetail.element_id];
+                        const [resultRetutnStockElement] = await pool.query(sqlReturnStockElement, dataReturnStockElement);
+
+                        comment = 'Completado y devuelto';
+                    }
+
+
+
+
                 }
-
-                if (noCompleted > 0) {
-                    return res.status(400).json({
-                        error: false,
-                        message: 'Aún faltan elemntos por entregar el estado general continuará En préstamo'
-                    })
-                }
-
-                //Actualizar el estado de préstamo de movimiento general a cancelado
-                const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET 
-                                                            movementLoan_status = ?, 
-                                                            user_manager = ?, 
-                                                            updated_at = CURRENT_TIMESTAMP
-                                                        WHERE movement_id = ? AND movementLoan_status  = ?;`;
-                const dataUpdateMovementStatus = [6, user.user_id, id, 5];
-                const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
             }
+
+            if (noCompleted > 0) {
+                return res.status(201).json({
+                    error: false,
+                    message: 'Aún faltan elementos por entregar el estado general continuará En préstamo'
+                })
+            }
+
+            //Actualizar el estado de préstamo de movimiento general a cancelado
+            const sqlUpdateMovementStatus = `UPDATE movements 
+                                                    SET 
+                                                        movementLoan_status = ?, 
+                                                        user_manager = ?, 
+                                                        updated_at = CURRENT_TIMESTAMP,
+                                                        user_returning = ?
+                                                    WHERE movement_id = ? AND movementLoan_status  = ?;`;
+            const dataUpdateMovementStatus = [6, user.user_id, user_returning, id, 5];
+            const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
         }
 
         if (statusMovement == 6) {
@@ -1610,7 +1623,7 @@ export const updateLoganStatus = async (req, res) => {
         await pool.query('ROLLBACK');
         return res.status(500).json({
             error: true,
-            message: error
+            message: error.message
         })
     }
 }
