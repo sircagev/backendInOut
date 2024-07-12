@@ -16,9 +16,9 @@ import {
   ApplicationsModal,
   PieOfMovements,
   PieOfLoans,
-  PieOfLoansApi,
-  PieConsumable,
-  PieOfMovementsApi,
+  BarOfLoans,
+  BarOfConsumables,
+  PieOfConsumables,
 } from "../controllers/Reportes.Controller.yacb.js";
 
 const route = Router();
@@ -32,9 +32,9 @@ route.get("/prestamosactivosmodal", CarryOverActiveLoansModal);
 route.get("/movimientos", ReportOfMovements);
 route.get("/movimientospie", PieOfMovements);
 route.get("/prestamospie", PieOfLoans);
-route.get("/prestamosapi", PieOfLoansApi);
-route.get("/consumiblespie", PieConsumable);
-route.get("/consumiblesapi", PieOfMovementsApi);
+route.get("/prestamosbar", BarOfLoans);
+route.get("/consumiblesbar", BarOfConsumables);
+route.get("/consumiblespie", PieOfConsumables);
 route.get("/stockmin", ReportStockMin);
 route.get("/stockminmodal", stockMinModal);
 route.get("/elementosdesactivados", ReportOffItems);
