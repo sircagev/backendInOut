@@ -1152,7 +1152,7 @@ export const registerLoganMovementInWarehouse = async (req, res) => {
 
 export const updateLoganStatus = async (req, res) => {
     try {
-        const { details, user_returning } = req.body
+        const { details, user_returning } = req.body;
         const { id } = req.params;
         const user = req.user;
 
@@ -1481,8 +1481,6 @@ export const updateLoganStatus = async (req, res) => {
 
         if (statusMovement == 5) {
 
-            console.log(user)
-
             if (user.role_id != 1 && user.role_id != 2) {
                 await pool.query('ROLLBACK');
                 return res.status(401).json({
@@ -1505,6 +1503,8 @@ export const updateLoganStatus = async (req, res) => {
             //Este solo servirá para ir revisando cada vez que se entrega algo
             for (const detail of details) {
 
+                const allowedStatus = [4,5,6,7]
+
                 const { loanStatus_id, movementDetail_id, remarks } = detail;
 
                 if (!loanStatus_id || !movementDetail_id) {
@@ -1515,7 +1515,7 @@ export const updateLoganStatus = async (req, res) => {
                     })
                 }
 
-                if (loanStatus_id != 6 && loanStatus_id != 5) {
+                if (allowedStatus.includes(loanStatus_id)) {
                     await pool.query('ROLLBACK');
                     return res.status(400).json({
                         error: true,
@@ -1529,28 +1529,33 @@ export const updateLoganStatus = async (req, res) => {
 
                 if (loanStatus_id == 6) {
                     const sqlMovementDetail = `SELECT * FROM movement_details WHERE movementDetail_id = ?;`;
-                    const dataMovementDetail = [movementDetail_id, 5];
+                    const dataMovementDetail = [movementDetail_id];
                     const [result] = await pool.query(sqlMovementDetail, dataMovementDetail);
 
                     const movementDetail = result[0];
                     console.log(movementDetail)
 
                     if (movementDetail.loanStatus_id == 5) {
-                        const updateDetail = `UPDATE movement_details SET loanStatus_id = ?, remarks = ?, user_returning = ? WHERE movementDetail_id = ?;`;
-                        const dataUpdateDetail = [loanStatus_id, remarks, user_returning, movementDetail_id];
+                        const updateDetail = `UPDATE movement_details 
+                                                SET 
+                                                    loanStatus_id = ?, 
+                                                    remarks = ?, 
+                                                    user_returning = ? 
+                                                WHERE movementDetail_id = ?;`;
+                        const dataUpdateDetail = [6, remarks, user_returning, movementDetail_id];
                         await pool.query(updateDetail, dataUpdateDetail);
 
                         // devolver el stock reservado a su ubicacion
                         const sqlReturnStockBatchLocation = `UPDATE batch_location_infos SET quantity = ?
-                    WHERE batch_id = ?;`
+                                                                WHERE batch_id = ?;`
                         const dataReturnStockBatchLocation = [movementDetail.quantity, movementDetail.batch_id];
-                        const [resultRetutnStockBatchLocation] = await pool.query(sqlReturnStockBatchLocation, dataReturnStockBatchLocation);
+                        await pool.query(sqlReturnStockBatchLocation, dataReturnStockBatchLocation);
 
                         //Por cada detalle de movimiento devolver el stock reservado al lote
                         const sqlReturnStockBatch = `UPDATE batches SET quantity = ?
-WHERE batch_id = ?;`
+                                                        WHERE batch_id = ?;`
                         const dataReturnStockBatch = [movementDetail.quantity, movementDetail.batch_id];
-                        const [resultRetutnStockBatch] = await pool.query(sqlReturnStockBatch, dataReturnStockBatch);
+                        await pool.query(sqlReturnStockBatch, dataReturnStockBatch);
 
                         //Por cada detalle de movimiento devolver el stock reservado al elemento
                         //Primero traemos el stock completo del elemento
@@ -1563,9 +1568,9 @@ WHERE batch_id = ?;`
                         const newStock = stock + movementDetail.quantity;
 
                         const sqlReturnStockElement = `UPDATE elements SET stock = ?
-                WHERE element_id = ?;`
+                                                        WHERE element_id = ?;`
                         const dataReturnStockElement = [newStock, movementDetail.element_id];
-                        const [resultRetutnStockElement] = await pool.query(sqlReturnStockElement, dataReturnStockElement);
+                        await pool.query(sqlReturnStockElement, dataReturnStockElement);
 
                         comment = 'Completado y devuelto';
                     }
@@ -1573,6 +1578,7 @@ WHERE batch_id = ?;`
             }
 
             if (noCompleted > 0) {
+                await pool.query('COMMIT')
                 return res.status(201).json({
                     error: false,
                     message: 'Aún faltan elementos por entregar el estado general continuará En préstamo'
@@ -1588,7 +1594,7 @@ WHERE batch_id = ?;`
                                                         user_returning = ?
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
             const dataUpdateMovementStatus = [6, user.user_id, user_returning, id, 5];
-            const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
+            await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
         }
 
         if (statusMovement == 6) {
@@ -1597,7 +1603,7 @@ WHERE batch_id = ?;`
             await pool.query('ROLLBACK');
             return res.status(400).json({
                 error: true,
-                message: "Este movimiento ya fue comnpletado, realice un nuevo movimiento por favor"
+                message: "Este movimiento ya fue completado, realice un nuevo movimiento por favor"
             })
         }
 
