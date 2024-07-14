@@ -1275,7 +1275,7 @@ export const updateLoganStatus = async (req, res) => {
                         })
                     }
 
-                    if (loanStatus_id != 3 && loanStatus_id != 4) {
+                    if (loanStatus_id != 3 && loanStatus_id != 4 && loanStatus_id != 7) {
                         await pool.query('ROLLBACK');
                         return res.status(400).json({
                             error: true,
@@ -1420,7 +1420,7 @@ export const updateLoganStatus = async (req, res) => {
                 const sqlUpdateMovementDetails = `UPDATE movement_details 
                                                         SET loanStatus_id = ?, remarks= ?, updated_at = CURRENT_TIMESTAMP 
                                                     WHERE movement_id = ? AND loanStatus_id = ?;`;
-                const dataUpdateMovementDetails = [7, "Cancelado", id, 2];
+                const dataUpdateMovementDetails = [7, "Cancelado", id, 3];
                 const [resultUpdateMovementDetails] = await pool.query(sqlUpdateMovementDetails, dataUpdateMovementDetails);
 
                 //Devolver al Stock los elementos que se reservaron y salieron del stock
@@ -1465,7 +1465,7 @@ export const updateLoganStatus = async (req, res) => {
                 const sqlUpdateMovementStatus = `UPDATE movements 
                                                         SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
-                const dataUpdateMovementStatus = [7, user.user_id, id, 2];
+                const dataUpdateMovementStatus = [7, user.user_id, id, 3];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
             }
         }
@@ -1503,7 +1503,7 @@ export const updateLoganStatus = async (req, res) => {
             //Este solo servirá para ir revisando cada vez que se entrega algo
             for (const detail of details) {
 
-                const allowedStatus = [4,5,6,7]
+                const allowedStatus = [4, 5, 6, 7]
 
                 const { loanStatus_id, movementDetail_id, remarks } = detail;
 
@@ -1515,7 +1515,7 @@ export const updateLoganStatus = async (req, res) => {
                     })
                 }
 
-                if (allowedStatus.includes(loanStatus_id)) {
+                if (!allowedStatus.includes(loanStatus_id)) {
                     await pool.query('ROLLBACK');
                     return res.status(400).json({
                         error: true,
