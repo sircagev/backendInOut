@@ -1181,9 +1181,9 @@ export const updateLoganStatus = async (req, res) => {
                 const [resultUpdateReview] = await pool.query(sqlUpdateReview, dataUpdateReview); */
                 //Actualizar el estado de préstamo de los detalles del movimiento a en revisión
                 const sqlUpdateMovementDetails = `UPDATE movement_details 
-                                                        SET loanStatus_id = ?, remarks= ?, updated_at = CURRENT_TIMESTAMP 
+                                                        SET loanStatus_id = ?, updated_at = CURRENT_TIMESTAMP 
                                                     WHERE movement_id = ? AND loanStatus_id = ?;`;
-                const dataUpdateMovementDetails = [2, "En revisión", id, 1];
+                const dataUpdateMovementDetails = [2, id, 1];
                 const [resultUpdateMovementDetails] = await pool.query(sqlUpdateMovementDetails, dataUpdateMovementDetails);
 
                 //Actualizar el estado de préstamo de movimiento general a en revición
@@ -1265,7 +1265,7 @@ export const updateLoganStatus = async (req, res) => {
                 let comment = '';
 
                 for (const detail of details) {
-                    const { loanStatus_id, movementDetail_id } = detail;
+                    const { loanStatus_id, movementDetail_id, remarks } = detail;
 
                     if (!loanStatus_id || !movementDetail_id) {
                         await pool.query('ROLLBACK');
@@ -1327,7 +1327,7 @@ export const updateLoganStatus = async (req, res) => {
 
                     //Actualizar el estado del detalle
                     const sqlUpdateStatus = `UPDATE movement_details SET loanStatus_id = ?, remarks = ? WHERE movementDetail_id = ?;`;
-                    const dataUpdateStatus = [loanStatus_id, comment, movementDetail_id];
+                    const dataUpdateStatus = [loanStatus_id, (remarks ? remarks : comment), movementDetail_id];
                     const [resultUpdateStatus] = await pool.query(sqlUpdateStatus, dataUpdateStatus);
                 }
 
@@ -1400,10 +1400,22 @@ export const updateLoganStatus = async (req, res) => {
         if (statusMovement == 3) {
             //Actualizar a On loan
             if (user.role_id == 1 || user.role_id == 2) {
-                //Actualizar los detalles
-                const sqlDetails = `UPDATE movement_details SET loanStatus_id = ? WHERE movement_id = ? AND loanStatus_id =?;`;
-                const dataDetails = [5, id, 3];
-                const [resultDetails] = await pool.query(sqlDetails, dataDetails);
+
+                for (const detail of details) {
+                    const { movementDetail_id, remarks } = detail;
+                    //Actualizar los detalles
+                    const sqlDetails = `UPDATE 
+                                            movement_details 
+                                        SET 
+                                            loanStatus_id = ?,
+                                            remarks = ? 
+                                        WHERE 
+                                            movement_id = ? 
+                                            AND loanStatus_id =?
+                                            AND movementDetail_id = ?;`;
+                    const dataDetails = [5,(remarks ? remarks : ''), id, 3, movementDetail_id];
+                    const [resultDetails] = await pool.query(sqlDetails, dataDetails);
+                }
 
                 //Actualizar estado del movimiento
                 const sqlUpdateMovementStatus = `UPDATE movements 
