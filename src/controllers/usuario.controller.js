@@ -66,9 +66,6 @@ export const registrarUsuario = async (req, res) => {
             values = [name, lastname, phone, email, identification, role_id, position_id, hashedPassword];
         }
 
-        console.log("Query a ejecutar:", sql);
-        console.log("Valores:", values);
-
         let [rows] = await pool.query(sql, values);
 
         if (rows.affectedRows > 0) {
@@ -112,10 +109,6 @@ export const ListarUsuario = async (req, res) => {
             status: user.status === '1' ? 'Activo' : user.status === '0' ? 'Inactivo' : 'Desconocido'
         }));
 
-        // Loguear el resultado después de la transformación
-        console.log('Resultado después de la transformación:', result);
-
-
         if (result.length > 0) {
             return res.status(200).json(result);
         } else {
@@ -145,7 +138,8 @@ export const BuscarUsuario = async (req, res) => {
                 u.course_id,
                 u.status,
                 r.name AS role_name,
-                p.name AS position_name
+                p.name AS position_name,
+                u.password
             FROM 
                 users u
             JOIN 
@@ -238,9 +232,6 @@ export const ActualizarUsuario = async (req, res) => {
         // Agregar la condición WHERE user_id = ?
         sql += ` WHERE user_id = ?`;
 
-        console.log("Query a ejecutar:", sql);
-        console.log("Valores:", values);
-
         let [rows] = await pool.query(sql, values);
 
         console.log("Filas afectadas:", rows.affectedRows);
@@ -256,7 +247,6 @@ export const ActualizarUsuario = async (req, res) => {
         return res.status(500).json({ 'message': e.message });
     }
 };
-
 
 export const DesactivarUsuario = async (req, res) => {
     try {
