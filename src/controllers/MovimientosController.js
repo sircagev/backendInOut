@@ -971,7 +971,6 @@ export const registerLoganMovement = async (req, res) => {
 
         //Confirmar la transacción
         await pool.query("COMMIT");
-
         return res.status(200).json({
             message: "Registro de Préstamo Exitoso",
             data: result,
