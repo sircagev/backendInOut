@@ -209,29 +209,33 @@ export const ReportStockMin = async (req, res) => {
 export const CarryOverOfLoansDue = async (req, res) => {
   try {
     const sql = `
-        SELECT 
-            CONCAT(u.name, ' ', u.lastname) AS user_application,
-            u.identification,
-            u.phone,
-            md.remarks,
-            GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
-            DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
-            DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-            m.movement_id
-        FROM 
-            users u
-        LEFT JOIN 
-            movements m ON u.user_id = m.user_application
-        LEFT JOIN 
-            movement_details md ON m.movement_id = md.movement_id
-        LEFT JOIN 
-            elements e ON md.element_id = e.element_id
-        WHERE 
-            m.estimated_return < CURDATE()
-        GROUP BY 
-            u.name, u.lastname, u.identification, u.phone, md.remarks, m.estimated_return, m.created_at, m.movement_id
-        ORDER BY 
-            m.movement_id;
+      SELECT 
+          CONCAT(u.name, ' ', u.lastname) AS user_application,
+          u.phone,
+          md.remarks,
+          GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
+          DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
+          DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+          p.name AS rol,
+          u.course_id,
+          m.movement_id
+      FROM 
+          users u
+      LEFT JOIN 
+          movements m ON u.user_id = m.user_application
+      LEFT JOIN 
+          movement_details md ON m.movement_id = md.movement_id
+      LEFT JOIN 
+          elements e ON md.element_id = e.element_id
+      LEFT JOIN 
+          positions p ON u.position_id = p.position_id
+      WHERE 
+          m.estimated_return < CURDATE()
+      GROUP BY 
+          u.name, u.lastname, u.phone, md.remarks, m.estimated_return, m.created_at, p.name, u.course_id, m.movement_id
+      ORDER BY 
+          m.movement_id;
+
       `;
 
     const [result] = await pool.query(sql);
@@ -436,32 +440,32 @@ export const ReportOfMovements = async (req, res) => {
 export const ReportOfApplications = async (req, res) => {
   try {
     const sql = `
-          SELECT 
-              CONCAT(u.name, ' ', u.lastname) AS user_applicant,
-              r.name AS role_name,
-              GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
-              u.course_id,
-              m.movement_id,
-              u.identification AS user_id,
-              u.phone,
-              DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
-          FROM 
-              movement_details md
-          JOIN 
-              movements m ON md.movement_id = m.movement_id
-          JOIN 
-              users u ON m.user_application = u.user_id
-          JOIN 
-              roles r ON u.role_id = r.role_id
-          JOIN 
-              elements e ON md.element_id = e.element_id
-          WHERE 
-              m.movementLoan_status = '1'
-          GROUP BY 
-              u.name, u.lastname, r.name, u.course_id, m.movement_id, u.identification, u.phone, m.created_at
-          ORDER BY
-              created_at DESC;
-          `;
+      SELECT 
+          CONCAT(u.name, ' ', u.lastname) AS user_applicant,
+          r.name AS role_name,
+          GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name) SEPARATOR ', ') AS element_name,
+          u.course_id,
+          m.movement_id,
+          u.identification AS user_id,
+          u.phone,
+          DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
+      FROM 
+          movement_details md
+      JOIN 
+          movements m ON md.movement_id = m.movement_id
+      JOIN 
+          users u ON m.user_application = u.user_id
+      JOIN 
+          roles r ON u.role_id = r.role_id
+      JOIN 
+          elements e ON md.element_id = e.element_id
+      WHERE 
+          m.movementLoan_status = '1'
+      GROUP BY 
+          u.name, u.lastname, r.name, u.course_id, m.movement_id, u.identification, u.phone, m.created_at
+      ORDER BY
+          created_at DESC;
+      `;
 
     const [result] = await pool.query(sql);
 
@@ -512,7 +516,6 @@ export const ReportOfApplications = async (req, res) => {
         `;
 
     const [rows] = await pool.query(sql);
-
     if (rows.length > 0) {
       const quantityResults = rows[0].Total;
       return res.status(200).json(quantityResults);
@@ -550,6 +553,9 @@ export const LoansDueModal = async (req, res) => {
 
       if (rows.length > 0) {
         const quantityResults = rows[0].total;
+        await pool.query(`UPDATE counters SET count = ? 
+          WHERE counter_name = 'loans_due'`, [quantityResults]);
+
         return res.status(200).json(quantityResults);
       } else {
         return res
@@ -585,6 +591,9 @@ export const ExpiredModal = async (req, res) => {
 
     if (rows.length > 0) {
       const quantityResults = rows[0].total_count;
+      await pool.query(`UPDATE counters SET count = ?
+        WHERE counter_name = 'date_expired'`, [quantityResults]);
+
       return res.status(200).json(quantityResults);
     } else {
       return res
@@ -600,31 +609,29 @@ export const ExpiredModal = async (req, res) => {
 export const ApplicationsModal = async (req, res) => {
   try {
     const sql = `
-          SELECT 
-              m.movement_id,
-              COUNT(*) AS count
-          FROM 
-              movements m
-          JOIN 
-              movement_details md ON m.movement_id = md.movement_id
-          JOIN 
-              users u ON m.user_application = u.user_id
-          JOIN 
-              roles r ON u.role_id = r.role_id
-          JOIN 
-              elements e ON md.element_id = e.element_id
-          WHERE 
-              m.movementLoan_status = '1'
-          GROUP BY 
-              m.movement_id
-          ORDER BY
-              m.movement_id;
-        `;
+      SELECT 
+          COUNT(DISTINCT m.movement_id) AS count
+      FROM 
+          movements m
+      JOIN 
+          movement_details md ON m.movement_id = md.movement_id
+      JOIN 
+          users u ON m.user_application = u.user_id
+      JOIN 
+          roles r ON u.role_id = r.role_id
+      JOIN 
+          elements e ON md.element_id = e.element_id
+      WHERE 
+          m.movementLoan_status = '1';
+              `;
 
     const [rows] = await pool.query(sql);
 
     if (rows.length > 0) {
       const quantityResults = rows[0].count;
+      await pool.query(`UPDATE counters SET count = ?
+        WHERE counter_name = 'requesteds'`, [quantityResults]);
+
       return res.status(200).json(quantityResults);
     } else {
       return res
@@ -663,8 +670,9 @@ export const CarryOverActiveLoansModal = async (req, res) => {
   }
 }; 
 
-//Pastel
-//ConsumiblesPie
+
+//Gráificas
+//Consumibles Pie
 export const PieOfConsumables = async (req, res) => {
   try {
     const sql = `
@@ -716,7 +724,7 @@ export const PieOfConsumables = async (req, res) => {
   }
 };
 
-//ConsumiblesBar
+//Consumibles Bar
 export const BarOfConsumables = async (req, res) => {
   try {
     const sql = `
@@ -750,7 +758,7 @@ export const BarOfConsumables = async (req, res) => {
   }
 };
 
-//PréstamosPie
+//Préstamos Pie
 export const PieOfLoans = async (req, res) => {
   try {
     const sql = `
@@ -798,7 +806,7 @@ export const PieOfLoans = async (req, res) => {
   }
 };
 
-//PréstamosBar
+//Préstamos Bar
 export const BarOfLoans = async (req, res) => {
   try {
     const sql = `
@@ -812,8 +820,7 @@ export const BarOfLoans = async (req, res) => {
           WHERE 
               m.movementType_id = '4'
           GROUP BY 
-              DATE_FORMAT(m.created_at, '%Y-%m')
-          ;
+              DATE_FORMAT(m.created_at, '%Y-%m');
           `;
 
     const [result] = await pool.query(sql);
@@ -832,7 +839,7 @@ export const BarOfLoans = async (req, res) => {
   }
 };
 
-//Movimientos
+//Movimientos Pie-Bar
 export const PieOfMovements = async (req, res) => {
   try {
     const sql = `
