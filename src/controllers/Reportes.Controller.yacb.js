@@ -333,6 +333,8 @@ export const HistoryOfLoans = async (req, res) => {
               users ur2 ON m.user_returning = ur2.user_id
           JOIN 
               loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+          WHERE
+              m.movementType_id = '4'
           GROUP BY 
               m.movement_id, md.remarks, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.movement_id, m.created_at, m.estimated_return, m.actual_return, ur2.name, ur2.lastname
           ORDER BY 
@@ -713,7 +715,7 @@ export const PieOfConsumables = async (req, res) => {
     if (result.length > 0) {
       return res
         .status(200)
-        .json({ message: "Pie of Loans", datos: result });
+        .json({ message: "Pie of Consumables", datos: result });
     } else {
       return res.status(200).json({
         message: "No data were found to generate the report",
@@ -725,7 +727,7 @@ export const PieOfConsumables = async (req, res) => {
 };
 
 //Consumibles Bar
-export const BarOfConsumables = async (req, res) => {
+export const BarOfLoans = async (req, res) => {
   try {
     const sql = `
           SELECT 
@@ -807,7 +809,7 @@ export const PieOfLoans = async (req, res) => {
 };
 
 //Préstamos Bar
-export const BarOfLoans = async (req, res) => {
+export const BarOfConsumables = async (req, res) => {
   try {
     const sql = `
           SELECT 
