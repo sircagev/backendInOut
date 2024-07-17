@@ -335,6 +335,65 @@ export const getMovements = async (req, res) => {
     }
 }
 
+export const getMovementsByUserId = async (req, res) => {
+    try {
+        const { id } = req.params
+        //Consulta trayendo la información completa de los movimientos
+        const movementsSql = `SELECT 
+                                m.movement_id AS 'codigo',
+                                m.created_at AS 'fecha',
+                                CONCAT(ua.name, ' ', ua.lastname) AS "nombre",
+                                ua.email AS 'correo',
+                                ua.identification AS 'identificacion',
+                                CONCAT(um.name, ' ', um.lastname) AS "usuario_manager",
+                                um.email AS 'correo_manager',
+                                um.identification AS 'identificacion_manager',
+                                CONCAT(urv.name, ' ', urv.lastname) AS "usuario_receiving",
+                                urv.email AS 'correo_receiving',
+                                urv.identification AS 'identificacion_receiving',
+                                CONCAT(urt.name, ' ', urt.lastname) AS "usuario_returning",
+                                urt.email AS 'correo_returning',
+                                urt.identification AS 'identificacion_returning',
+                                mt.name AS 'tipo',
+                                l.name AS status
+                            FROM movements AS m
+                            LEFT JOIN movement_types AS mt 
+                                ON m.movementType_id = mt.movementType_id
+                            LEFT JOIN users AS ua
+                                ON m.user_application = ua.user_id
+                            LEFT JOIN users AS um
+                                ON m.user_manager = um.user_id
+                            LEFT JOIN users AS urv
+                                ON m.user_receiving = urv.user_id
+                            LEFT JOIN users AS urt
+                                ON m.user_returning = urt.user_id
+                            LEFT JOIN loan_statuses AS l
+                                ON m.movementLoan_status = l.loanStatus_id
+                            WHERE ua.user_id = ?
+                            ORDER BY codigo DESC;`;
+        const data = [id]
+        //Ejecutar la consulta
+        const [result] = await pool.query(movementsSql, data);
+
+        //Revisar que llego información y ejecutar manejo de errores
+        if (result.length == 0) {
+            return res.status(200).json({
+                message: "No se encontraron movimientos",
+                data: []
+            });
+        }
+
+        return res.status(200).json({
+            message: "MOvimientos listados",
+            data: result
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error
+        });
+    }
+}
+
 export const getLoans = async (req, res) => {
     try {
         //Consulta trayendo la información completa de los movimientos
@@ -1173,6 +1232,9 @@ export const updateLoganStatus = async (req, res) => {
         if (statusMovement == 1) {
 
             if (user.role_id == 1 || user.role_id == 2) {
+                //Revisar detalles por si se quiere cancelar en la ventana reservas
+                
+
                 //Actualizar a en revision
 
                 /* const sqlUpdateReview = `SELECT * FROM movement_details WHERE movement_id = ?;`;
@@ -1197,9 +1259,9 @@ export const updateLoganStatus = async (req, res) => {
                 //puede cancelar
                 //Actualizar el estado de préstamo de los detalles del movimiento a cancelado
                 const sqlUpdateMovementDetails = `UPDATE movement_details 
-                                                        SET loanStatus_id = ?, remarks= ?, updated_at = CURRENT_TIMESTAMP 
+                                                        SET loanStatus_id = ?, updated_at = CURRENT_TIMESTAMP 
                                                     WHERE movement_id = ? AND loanStatus_id = ?;`;
-                const dataUpdateMovementDetails = [7, "Cancelado", id, 1];
+                const dataUpdateMovementDetails = [7, id, 1];
                 const [resultUpdateMovementDetails] = await pool.query(sqlUpdateMovementDetails, dataUpdateMovementDetails);
 
                 //Devolver al Stock los elementos que se reservaron y salieron del stock
@@ -1242,7 +1304,7 @@ export const updateLoganStatus = async (req, res) => {
 
                 //Actualizar el estado de préstamo de movimiento general a cancelado
                 const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
+                                                        SET movementLoan_status = ?, user_application = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
                 const dataUpdateMovementStatus = [7, user.user_id, id, 1];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
@@ -1389,7 +1451,7 @@ export const updateLoganStatus = async (req, res) => {
 
                 //Actualizar el estado de préstamo de movimiento general a cancelado
                 const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
+                                                        SET movementLoan_status = ?, user_application = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
                 const dataUpdateMovementStatus = [7, user.user_id, id, 2];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
@@ -1474,7 +1536,7 @@ export const updateLoganStatus = async (req, res) => {
 
                 //Actualizar el estado de préstamo de movimiento general a cancelado
                 const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
+                                                        SET movementLoan_status = ?, user_application = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
                 const dataUpdateMovementStatus = [7, user.user_id, id, 3];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);

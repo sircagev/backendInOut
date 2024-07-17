@@ -24,7 +24,8 @@ import {
     getMovementDetailsById,
     getLoans,
     getLoanByMovmentId,
-    registerLoganMovementInWarehouse
+    registerLoganMovementInWarehouse,
+    getMovementsByUserId
 } from "../controllers/MovimientosController.js";
 
 //Instancia
@@ -47,6 +48,7 @@ route.get('/list/:filter', getMovementsByFilter);
 route.get('/movement-details/list/:id', getMovementDetailsById);
 route.get('/loans/list', getLoans);
 route.get('/loans/list/:id', getLoanByMovmentId);
+route.get('/list/user/:id', getMovementsByUserId);
 
 
 //rutas para todos los usuarios
