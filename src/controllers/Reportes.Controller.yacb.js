@@ -338,7 +338,7 @@ export const HistoryOfLoans = async (req, res) => {
           GROUP BY 
               m.movement_id, md.remarks, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.movement_id, m.created_at, m.estimated_return, m.actual_return, ur2.name, ur2.lastname
           ORDER BY 
-              m.movement_id;
+              m.movement_id DESC;
           `;
 
     const [result] = await pool.query(sql);
@@ -419,7 +419,7 @@ export const ReportOfMovements = async (req, res) => {
         WHERE 
             m.movementType_id = 2
         ORDER BY 
-            movement_id ASC;
+            movement_id DESC;
       `;
 
     const [result] = await pool.query(sql);
@@ -822,6 +822,8 @@ export const BarOfConsumables = async (req, res) => {
           WHERE 
               m.movementType_id = '4'
           GROUP BY 
+              DATE_FORMAT(m.created_at, '%Y-%m')
+          ORDER BY 
               DATE_FORMAT(m.created_at, '%Y-%m');
           `;
 
@@ -861,7 +863,7 @@ export const PieOfMovements = async (req, res) => {
           GROUP BY 
               m.movement_id
           ORDER BY 
-              mt.name ASC;
+              mt.name DESC;
          `;
 
     const [result] = await pool.query(sql);
