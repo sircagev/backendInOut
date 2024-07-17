@@ -840,7 +840,7 @@ export const registerOutgoingMovement = async (req, res) => {
                 const dataBatchLocations = [batch_id, warehouseLocation_id];
                 const [resultBatchLocations] = await pool.query(sqlBatchLocations, dataBatchLocations);
 
-                
+
                 let quantityUsed = 0;
 
                 //Necesito empezar a sustraer cantidades del resultBatchLocations
@@ -1491,20 +1491,21 @@ export const updateLoganStatus = async (req, res) => {
                                             movement_details 
                                         SET 
                                             loanStatus_id = ?,
-                                            remarks = ? 
+                                            remarks = ?,
+                                            user_receiving = ?
                                         WHERE 
                                             movement_id = ? 
                                             AND loanStatus_id =?
                                             AND movementDetail_id = ?;`;
-                    const dataDetails = [5, (remarks ? remarks : ''), id, 3, movementDetail_id];
+                    const dataDetails = [5, (remarks ? remarks : ''), user_returning, id, 3, movementDetail_id];
                     const [resultDetails] = await pool.query(sqlDetails, dataDetails);
                 }
 
                 //Actualizar estado del movimiento
                 const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
+                                                        SET movementLoan_status = ?, user_manager = ?, user_receiving = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
-                const dataUpdateMovementStatus = [5, user.user_id, id, 3];
+                const dataUpdateMovementStatus = [5, user.user_id, user_returning, id, 3];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
             }
 
