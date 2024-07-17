@@ -392,34 +392,40 @@ export const ReportOfMovements = async (req, res) => {
         UNION
 
         SELECT 
-            CONCAT(u1.name, ' ', u1.lastname) AS user_manager,
-            CONCAT(u2.name, ' ', u2.lastname) AS user_action,
-            m.movement_id, 
-            DATE_FORMAT(m.created_at, ('%d/%m/%Y')) AS created_at,
-            md.element_id, 
-            md.quantity, 
-            md.remarks, 
-            b.batch_serial, 
-            e.name AS element_name,
-            mt.name AS movement_type_name
-        FROM 
-            movements m
-        JOIN 
-            movement_details md ON m.movement_id = md.movement_id
-        JOIN 
-            batches b ON md.batch_id = b.batch_id
-        JOIN 
-            elements e ON md.element_id = e.element_id
-        JOIN 
-            movement_types mt ON m.movementType_id = mt.movementType_id
-        JOIN 
-            users u1 ON m.user_manager = u1.user_id
-        LEFT JOIN 
-            users u2 ON m.user_receiving = u2.user_id
-        WHERE 
-            m.movementType_id = 2
-        ORDER BY 
-            movement_id DESC;
+              CONCAT(u1.name, ' ', u1.lastname) AS user_manager,
+              CONCAT(
+                  IFNULL(u2.name, u3.name),
+                  ' ',
+                  IFNULL(u2.lastname, u3.lastname)
+              ) AS user_action,
+              m.movement_id, 
+              DATE_FORMAT(m.created_at, ('%d/%m/%Y')) AS created_at,
+              md.element_id, 
+              md.quantity, 
+              md.remarks, 
+              b.batch_serial, 
+              e.name AS element_name,
+              mt.name AS movement_type_name
+          FROM 
+              movements m
+          JOIN 
+              movement_details md ON m.movement_id = md.movement_id
+          JOIN 
+              batches b ON md.batch_id = b.batch_id
+          JOIN 
+              elements e ON md.element_id = e.element_id
+          JOIN 
+              movement_types mt ON m.movementType_id = mt.movementType_id
+          JOIN 
+              users u1 ON m.user_manager = u1.user_id
+          LEFT JOIN 
+              users u2 ON m.user_receiving = u2.user_id
+          LEFT JOIN 
+              users u3 ON m.user_application = u3.user_id
+          WHERE 
+              m.movementType_id = 2
+          ORDER BY 
+              movement_id DESC;
       `;
 
     const [result] = await pool.query(sql);
