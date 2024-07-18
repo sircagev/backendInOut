@@ -38,7 +38,7 @@ export const ListarUbicacion = async (req, res) => {
         `);
 
         if(result.length > 0) {
-            return res.status(200).json(result);
+            return res.status(200).json({data: result});
         } else {
             return res.status(200).json({message: 'No se encontraron detalles de ubicación', data: []});
         }
@@ -127,6 +127,14 @@ export const Desactivarubicacion = async (req, res) => {
         // Verificar si se encontró la ubicación
         if (estadoResult.length === 0) {
             return res.status(404).json({ message: "Detalle de ubicación no encontrado." });
+        }
+
+        // Verificar si la c ategoría está siendo utilizado
+        const sqlCheckUso = `SELECT COUNT(*) AS count FROM batch_location_infos WHERE warehouseLocation_id = ? AND quantity > 0`;
+        const [usoResult] = await pool.query(sqlCheckUso, [id]);
+
+        if (usoResult[0].count > 0) {
+            return res.status(400).json({ message: "La ubicación esta siendo utlizada." });
         }
 
         const estadoActual = estadoResult[0].status;
