@@ -114,8 +114,8 @@ export const DesactivarCategoria = async (req, res) => {
 
         // Cambiar el estado del empaque
         const estadoActual = estadoResult[0].status;
-        let nuevoEstado = estadoActual == 1 ? '0' : '1';
-        let estadoDescripcion = nuevoEstado == '1' ? 'activo' : 'inactivo';
+        let nuevoEstado = estadoActual == 'activo' ? 'inactivo' : 'activo';
+        let estadoDescripcion = nuevoEstado == 'activo' ? 'activo' : 'inactivo';
 
         // Actualizar el estado en la base de datos
         const sqlUpdateEstado = `UPDATE categories SET status = ? WHERE category_id = ?`;
