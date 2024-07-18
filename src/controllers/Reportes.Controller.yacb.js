@@ -308,37 +308,41 @@ export const CarryOverActiveLoans = async (req, res) => {
 export const HistoryOfLoans = async (req, res) => {
   try {
     const sql = `
-          SELECT 
-              GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name,'') SEPARATOR ', ') AS element_name,
-              md.remarks,
-              CONCAT(ua.name, ' ', ua.lastname) AS user_application,
-              CONCAT(ur.name, ' ', ur.lastname) AS user_receiving,
-              ls.name AS loan_status,
-              m.movement_id,
-              DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
-              DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
-              DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
-              CONCAT(ur2.name, ' ', ur2.lastname) AS user_returning
-          FROM 
-              movement_details md
-          JOIN 
-              movements m ON md.movement_id = m.movement_id
-          JOIN 
-              elements e ON md.element_id = e.element_id
-          LEFT JOIN 
-              users ua ON m.user_application = ua.user_id
-          LEFT JOIN 
-              users ur ON m.user_receiving = ur.user_id
-          LEFT JOIN 
-              users ur2 ON m.user_returning = ur2.user_id
-          JOIN 
-              loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
-          WHERE
-              m.movementType_id = '4'
-          GROUP BY 
-              m.movement_id, md.remarks, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.movement_id, m.created_at, m.estimated_return, m.actual_return, ur2.name, ur2.lastname
-          ORDER BY 
-              m.movement_id DESC;
+        SELECT 
+            GROUP_CONCAT(CONCAT(md.quantity, ' ', e.name, '') SEPARATOR ', ') AS element_name,
+            md.remarks,
+            CONCAT(ua.name, ' ', ua.lastname) AS user_application,
+            CONCAT(
+                COALESCE(ur.name, ua.name), 
+                ' ', 
+                COALESCE(ur.lastname, ua.lastname)
+            ) AS user_receiving,
+            ls.name AS loan_status,
+            m.movement_id,
+            DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at,
+            DATE_FORMAT(m.estimated_return, '%d/%m/%Y') AS estimated_return,
+            DATE_FORMAT(m.actual_return, '%d/%m/%Y') AS actual_return,
+            CONCAT(ur2.name, ' ', ur2.lastname) AS user_returning
+        FROM 
+            movement_details md
+        JOIN 
+            movements m ON md.movement_id = m.movement_id
+        JOIN 
+            elements e ON md.element_id = e.element_id
+        LEFT JOIN 
+            users ua ON m.user_application = ua.user_id
+        LEFT JOIN 
+            users ur ON m.user_receiving = ur.user_id
+        LEFT JOIN 
+            users ur2 ON m.user_returning = ur2.user_id
+        JOIN 
+            loan_statuses ls ON m.movementLoan_status = ls.loanStatus_id
+        WHERE
+            m.movementType_id = '4'
+        GROUP BY 
+            m.movement_id, md.remarks, ua.name, ua.lastname, ur.name, ur.lastname, ls.name, m.movement_id, m.created_at, m.estimated_return, m.actual_return, ur2.name, ur2.lastname
+        ORDER BY 
+            m.movement_id DESC;
           `;
 
     const [result] = await pool.query(sql);
