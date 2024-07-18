@@ -27,7 +27,7 @@ export const listarBodegas = async (req, res) => {
         const [result] = await pool.query("SELECT *, warehouse_id AS `codigo`, DATE_FORMAT(created_at, '%d/%m/%Y') FROM warehouses");
 
         if (result.length > 0) {
-            return res.status(200).json(result);
+            return res.status(200).json({data: result});
         } else {
             return res.status(200).json({ message: 'No se encontraron bodegas', data: [] });
         }

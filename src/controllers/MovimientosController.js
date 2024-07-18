@@ -1682,7 +1682,8 @@ export const updateLoganStatus = async (req, res) => {
                                                         movementLoan_status = ?, 
                                                         user_manager = ?, 
                                                         updated_at = CURRENT_TIMESTAMP,
-                                                        user_returning = ?
+                                                        user_returning = ?,
+                                                        actual_return = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
             const dataUpdateMovementStatus = [6, user.user_id, user_returning, id, 5];
             await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
