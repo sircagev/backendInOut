@@ -1470,9 +1470,16 @@ export const updateLoganStatus = async (req, res) => {
         }
 
         if (statusMovement == 3) {
+
             //Actualizar a On loan
             if (user.role_id == 1 || user.role_id == 2) {
-
+                if (!user_returning) {
+                    await pool.query('ROLLBACK');
+                    return res.status(400).json({
+                        error: true,
+                        message: "Hacen faltan datos"
+                    })
+                }
                 for (const detail of details) {
                     const { movementDetail_id, remarks } = detail;
                     //Actualizar los detalles
