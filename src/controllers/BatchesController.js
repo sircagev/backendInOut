@@ -7,7 +7,7 @@ export const getBatchesById = async (req, res) => {
                         b.*,
                         wl.name AS location_nanme
                     FROM batches AS b
-                    JOIN batch_loaction_infos AS bli ON b.batch_id = bli.batch_id
+                    JOIN batch_location_infos AS bli ON b.batch_id = bli.batch_id
                     JOIN warehouse_locations AS wl ON bli.warehouseLocation_id = wl.warehouseLocation_id
                     WHERE b.quantity > 0 AND b.element_id = ?;`;
         const data = [id];
