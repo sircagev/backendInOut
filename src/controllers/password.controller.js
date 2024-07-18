@@ -16,7 +16,6 @@ const tokenPassword = async (peticion, respuesta) => {
         }
 
         const token = jwt.sign({ user_id: user[0].user_id }, "palabraSecreta", { expiresIn: "2h" });
-        console.log(token);
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -36,7 +35,7 @@ const tokenPassword = async (peticion, respuesta) => {
             html: `
                 <p>Querido Usuario,</p>
                 <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
-                <a href="http://localhost:3001/login?token=${token}" style="background-color: #39A900; color: white;
+                <a href="http://localhost:4003/login?token=${token}" style="background-color: #39A900; color: white;
                  padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">Restablecer Contraseña</a>
                 <p>Si no solicitaste un cambio de contraseña, por favor ignora este correo.</p>
                 <p>Saludos,<br>El equipo de In-Out</p>
@@ -55,9 +54,9 @@ const tokenPassword = async (peticion, respuesta) => {
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.log(error);
                 return respuesta.status(500).json({
-                    "message": "No se pudo enviar el Correo"
+                    "message": "No se pudo enviar el Correo",
+                    error: error
                 });
             }
             respuesta.send({

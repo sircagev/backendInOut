@@ -14,6 +14,11 @@ import {
   ExpiredModal,
   ReportingOfExpiredItems,
   ApplicationsModal,
+  PieOfMovements,
+  PieOfLoans,
+  BarOfLoans,
+  BarOfConsumables,
+  PieOfConsumables,
 } from "../controllers/Reportes.Controller.yacb.js";
 
 const route = Router();
@@ -25,6 +30,11 @@ route.get("/prestamosvencidos", CarryOverOfLoansDue);
 route.get("/prestamosvencidosmodal", LoansDueModal);
 route.get("/prestamosactivosmodal", CarryOverActiveLoansModal);
 route.get("/movimientos", ReportOfMovements);
+route.get("/movimientospie", PieOfMovements);
+route.get("/prestamospie", PieOfLoans);
+route.get("/prestamosbar", BarOfLoans);
+route.get("/consumiblesbar", BarOfConsumables);
+route.get("/consumiblespie", PieOfConsumables);
 route.get("/stockmin", ReportStockMin);
 route.get("/stockminmodal", stockMinModal);
 route.get("/elementosdesactivados", ReportOffItems);

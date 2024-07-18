@@ -107,22 +107,25 @@ export const DesactivarMedida = async (req, res) => {
             return res.status(404).json({ message: "Unidad de medida no encontrada." });
         }
 
-        const estadoActual = estadoResult[0].status;
-        let nuevoEstado;
+        const sqlCheckUso = `SELECT COUNT(*) AS count FROM elements WHERE measurementUnit_id = ?`;
+        const [usoResult] = await pool.query(sqlCheckUso, [id]);
 
-        // Determinar el nuevo estado según el estado actual
-        if (estadoActual == 1) {
-            nuevoEstado = '0';
-        } else if (estadoActual == 0) {
-            nuevoEstado = '1';
+        if (usoResult[0].count > 0) {
+            return res.status(400).json({ message: "La medida esta siendo utilizada por uno o más elementos." });
         }
+
+
+        const estadoActual = estadoResult[0].status;
+        let nuevoEstado = estadoActual == 1 ? '0' : '1';
+        let estadoDescripcion = nuevoEstado == '1' ? 'activo' : 'inactivo';
+
 
         // Actualizar el estado en la base de datos
         const sqlUpdateEstado = `UPDATE measurement_units SET status = ? WHERE measurementUnit_id = ?`;
         const [result] = await pool.query(sqlUpdateEstado, [nuevoEstado, id]);
 
         if (result.affectedRows > 0) {
-            return res.status(200).json({ message: `Unidad de medida actualizada a estado ${nuevoEstado} con éxito.` });
+            return res.status(200).json({ message: `Unidad de medida actualizada a estado ${estadoDescripcion} con éxito.` });
         } else {
             return res.status(404).json({ "message": "Unidad de medida no actualizada." });
         }

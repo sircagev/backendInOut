@@ -45,7 +45,6 @@ export const ListarUbicacion = async (req, res) => {
 
         res.json(result);
     } catch (error) {
-        console.error("Error al listar ubicaciones:", error);
         res.status(500).json({ message: 'Error al listar ubicaciones', error: error.message });
     }
 };
