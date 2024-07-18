@@ -5,8 +5,6 @@ export const RegistrarBodega = async (req, res) => {
         const { name } = req.body;
 
         // Agregamos un registro para ver los datos recibidos
-        console.log("Datos recibidos para registrar bodega:", req.body);
-
         const sql = `INSERT INTO warehouses ( name )
                      VALUES ( ?)`;
         const values = [name];
@@ -20,22 +18,20 @@ export const RegistrarBodega = async (req, res) => {
         }
     } catch (e) {
         // Agregamos un registro para ver el error
-        console.log("Error al registrar bodega:", e);
-
         return res.status(500).json({ "message": `Error en el servidor: ${e.message}` });
     }
 };
 
-export const listarBodegas = async(req, res) => {
+export const listarBodegas = async (req, res) => {
     try {
         const [result] = await pool.query("SELECT *, warehouse_id AS `codigo`, DATE_FORMAT(created_at, '%d/%m/%Y') FROM warehouses");
-        
-        if(result.length > 0) {
-            return res.status(200).json(result); 
+
+        if (result.length > 0) {
+            return res.status(200).json(result);
         } else {
             return res.status(200).json({ message: 'No se encontraron bodegas', data: [] });
         }
-        
+
     } catch (e) {
         return res.status(500).json({ 'message': 'error' + e });
     }
@@ -68,7 +64,7 @@ export const ActualizarBodega = async (req, res) => {
               SET  name = ?
             WHERE warehouse_id = ?
         `;
-        let [rows] = await pool.query(sql, [ name, id]);
+        let [rows] = await pool.query(sql, [name, id]);
 
         if (rows.affectedRows > 0) {
             return res.status(200).json({ "message": "Bodega actualizada con éxito" });

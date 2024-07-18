@@ -37,7 +37,6 @@ export const AñadirStock = async (req, res) => {
 
         // Actualizar el stock en la base de datos
         let [result] = await pool.query('UPDATE elemento SET stock = ? WHERE codigo_elemento = ?', [nuevoStock, id]);
-        console.log(result);
         if (result.affectedRows > 0) {
             return res.status(200).json({ "message": "Stock añadido correctamente" });
         } else {
@@ -84,7 +83,6 @@ export const ListarElemetos = async (req, res) => {
             return res.status(204).json({ message: 'No se encontaron elementos registrados.' });
         }
     } catch (error) {
-        console.error("Error al listar elementos:", error);
         return res.status(500).json({ message: 'Error al listar elementos', error: error.message });
     }
 };
@@ -155,7 +153,6 @@ export const ActualizarElemento = async (req, res) => {
             return res.status(400).json({ "Message": "Elemento no actualizado. Verifique los datos proporcionados." });
         }
     } catch (error) {
-        console.error("Error al actualizar el elemento:", error);
         return res.status(500).json({ "Message": "Error interno del servidor.", "Error": error.message });
     }
 };

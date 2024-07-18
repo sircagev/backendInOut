@@ -16,7 +16,6 @@ const tokenPassword = async (peticion, respuesta) => {
         }
 
         const token = jwt.sign({ user_id: user[0].user_id }, "palabraSecreta", { expiresIn: "2h" });
-        console.log(token);
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -55,9 +54,9 @@ const tokenPassword = async (peticion, respuesta) => {
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.log(error);
                 return respuesta.status(500).json({
-                    "message": "No se pudo enviar el Correo"
+                    "message": "No se pudo enviar el Correo",
+                    error: error
                 });
             }
             respuesta.send({
