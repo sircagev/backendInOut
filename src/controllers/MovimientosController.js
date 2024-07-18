@@ -93,7 +93,6 @@ export const ListarDetallesMovimiento = async (req, res) => {
                     `;
         //Ejecutar la consulta
         const [result] = await pool.query(sql, [id]);
-        console.log(result)
         //Revisar que llego información y ejecutar manejo de errores
         if (result.length > 0) {
             return res.status(200).json({ message: "Movimientos listados", datos: result });
@@ -127,7 +126,6 @@ export const RegistrarMovimientoPrestamo = async (req, res) => {
         for (const detalle of detalles) {
             //Traer informacion de los detalles
             const { fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones } = detalle;
-            console.log(detalle)
             //Insertar de a un detalle
             const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones) 
                                     VALUES (?,?,?,?,?,?,?,?)`;
@@ -151,7 +149,6 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
         let { usuario_solicitud, fk_movimiento, Estado, detalles } = req.body;
         //Iniciar un transaccion en Sql
         await pool.query("START TRANSACTION");
-        console.log(req.body)
         //Crear un Nuevo Movimiento de tipo Prestamo
         const sqlMovimientoIngreso = `INSERT INTO movimiento (usuario_solicitud, fk_movimiento, Estado) 
                                     VALUES (?,?,?)`;
@@ -239,14 +236,12 @@ export const ActualizarDetalleMovimiento = async (req, res) => {
         // Obtener el detalle original para conocer la cantidad y el elemento antes de la actualización
         const sqlDetalleOriginal = `SELECT codigo_detalle, cantidad, fk_elemento, fk_movimiento FROM detalle_movimiento WHERE codigo_detalle = ?;`;
         const [rowsDetalleOriginal] = await pool.query(sqlDetalleOriginal, [id]);
-        console.log(rowsDetalleOriginal)
         if (rowsDetalleOriginal.length === 0) {
             await pool.query("ROLLBACK");
             return res.status(404).json({ message: "Detalle no encontrado" });
         }
 
         const detalleOriginal = rowsDetalleOriginal[0];
-        console.log(detalleOriginal)
         const cantidadOriginal = detalleOriginal.cantidad;
         const fk_elemento = detalleOriginal.fk_elemento;
         const fk_movimiento = detalleOriginal.fk_movimiento;
@@ -766,9 +761,6 @@ export const registerOutgoingMovement = async (req, res) => {
         for (const detail of details) {
             const { element_id, quantity: detailquantity, remarks, warehouseLocation_id } = detail;
 
-            console.log(warehouseLocation_id);
-
-
             if (!element_id || !detailquantity || !warehouseLocation_id) {
                 await pool.query("ROLLBACK");
                 return res.status(400).json({
@@ -825,8 +817,6 @@ export const registerOutgoingMovement = async (req, res) => {
             let remainingQuantity = detailquantity;
             let quantityused2 = 0;
 
-            console.log(resultBatchStock)
-
             for (const batch of resultBatchStock) {
                 const { batch_id, quantity: bachtQuantity } = batch
 
@@ -853,7 +843,6 @@ export const registerOutgoingMovement = async (req, res) => {
 
                     // Determinar cuánto tomar de esta ubicación específica
                     const quantityFromLocation = Math.min(quantityToUse, locationQuantity);
-                    console.log(quantityFromLocation)
 
                     // Actualizar la cantidad en la ubicación específica
                     const updatedQuantity = locationQuantity - quantityFromLocation;
@@ -1629,7 +1618,6 @@ export const updateLoganStatus = async (req, res) => {
                     const [result] = await pool.query(sqlMovementDetail, dataMovementDetail);
 
                     const movementDetail = result[0];
-                    console.log(movementDetail)
 
                     if (movementDetail.loanStatus_id == 5) {
                         const updateDetail = `UPDATE movement_details 
