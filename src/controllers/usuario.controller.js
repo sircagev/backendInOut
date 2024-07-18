@@ -5,8 +5,8 @@ import bcrypt from 'bcrypt';
 
 export const registrarUsuario = async (req, res) => {
     try {
- 
-        let {name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
+
+        let { name, lastname, phone, email, identification, role_id, position_id, course_id } = req.body;
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -18,7 +18,6 @@ export const registrarUsuario = async (req, res) => {
         let [emailRows] = await pool.query(checkEmailSql, [email]);
 
         if (emailRows[0].count > 0) {
-            console.log("El correo ya está registrado");
             return res.status(400).json({ 'message': 'El correo ya está registrado' });
         }
 
@@ -27,7 +26,6 @@ export const registrarUsuario = async (req, res) => {
             let checkIdentificationSql = 'SELECT COUNT(*) as count FROM users WHERE identification = ?';
             let [identificationRows] = await pool.query(checkIdentificationSql, [identification]);
             if (identificationRows[0].count > 0) {
-                console.log("La identificación ya está registrada");
                 return res.status(400).json({ 'message': 'La identificación ya está registrada' });
             }
         }
@@ -36,16 +34,14 @@ export const registrarUsuario = async (req, res) => {
         let checkPositionIdSql = 'SELECT COUNT(*) as count FROM positions WHERE position_id = ?';
         let [positionRows] = await pool.query(checkPositionIdSql, [position_id]);
         if (positionRows[0].count === 0) {
-            console.log("La posición no existe");
             return res.status(400).json({ 'message': 'La posición no existe' });
         }
 
         // Validar que course_id solo se pueda ingresar si position_id es 1 (aprendiz)
         if (position_id !== 1 && course_id) {
-            console.log("No se puede asignar Id de Ficha para esta posición");
             return res.status(400).json({ 'message': 'El Id de Ficha solo se puede ingresar para un aprendiz' });
         }
-        
+
 
         // Encriptar la identificación para usarla como contraseña si se ha proporcionado
         let hashedPassword = null;
@@ -74,7 +70,6 @@ export const registrarUsuario = async (req, res) => {
             return res.status(403).json({ 'message': 'Usuario No Registrado' });
         }
     } catch (e) {
-        console.error("Error en el servidor:", e.message);
         return res.status(500).json({ 'message': e.message });
     }
 };
@@ -167,7 +162,6 @@ export const BuscarUsuario = async (req, res) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
     } catch (error) {
-        console.log('Error al buscar usuario:', error);
         return res.status(500).json({ message: 'Error interno del servidor' });
     }
 };
@@ -204,17 +198,16 @@ export const ActualizarUsuario = async (req, res) => {
             values = [name, lastname, phone, email, identification, role_id, position_id, user_id];
         }
 
-        if(position_id == '1' && !course_id) {
+        if (position_id == '1' && !course_id) {
             return res.status(400).json({
                 message: 'Como es aprendiz debe ingresar id ficha'
             })
         }
-            // Validar si la identificación ya existe si se ha proporcionado (excepto si es la misma del usuario actual)
+        // Validar si la identificación ya existe si se ha proporcionado (excepto si es la misma del usuario actual)
         if (identification) {
             let checkIdentificationSql = 'SELECT COUNT(*) as count FROM users WHERE identification = ? AND user_id <> ?';
             let [identificationRows] = await pool.query(checkIdentificationSql, [identification, user_id]);
             if (identificationRows[0].count > 0) {
-                console.log("La identificación ya está registrada");
                 return res.status(400).json({ 'message': 'La identificación ya está registrada' });
             }
         }
@@ -224,7 +217,6 @@ export const ActualizarUsuario = async (req, res) => {
             let checkEmailSql = 'SELECT COUNT(*) as count FROM users WHERE email = ? AND user_id <> ?';
             let [emailRows] = await pool.query(checkEmailSql, [email, user_id]);
             if (emailRows[0].count > 0) {
-                console.log("El correo electrónico ya está registrado");
                 return res.status(400).json({ 'message': 'El correo electrónico ya está registrado' });
             }
         }
@@ -234,16 +226,12 @@ export const ActualizarUsuario = async (req, res) => {
 
         let [rows] = await pool.query(sql, values);
 
-        console.log("Filas afectadas:", rows.affectedRows);
-
         if (rows.affectedRows > 0) {
             return res.status(200).json({ 'message': 'Usuario actualizado con éxito' });
         } else {
             return res.status(403).json({ 'message': 'Usuario no actualizado' });
         }
     } catch (e) {
-        console.error("Error en el servidor:", e.message);
-
         return res.status(500).json({ 'message': e.message });
     }
 };
@@ -292,13 +280,12 @@ export const DesactivarUsuario = async (req, res) => {
 export const ActualizarPerfil = async (req, res) => {
     try {
 
-        const {id} = req.params; // Obtener el user_id del token decodificado
+        const { id } = req.params; // Obtener el user_id del token decodificado
 
         // Obtener los datos del cuerpo de la solicitud
         const user = req.body;
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            console.log("Errores de validación:", errors);
             return res.status(400).json(errors);
         }
 
@@ -317,8 +304,7 @@ export const ActualizarPerfil = async (req, res) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
     } catch (error) {
-        console.error('Error al actualizar el perfil:', error);
-        return res.status(500).json({ message: 'Error interno del servidor' });
+        return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
     }
 };
 
@@ -351,7 +337,6 @@ export const cambiarContrasena = async (req, res) => {
 
         return res.status(200).json({ message: "Contraseña actualizada correctamente" });
     } catch (error) {
-        console.error("Error al cambiar la contraseña:", error.message);
-        return res.status(500).json({ message: "Error interno al cambiar la contraseña" });
+        return res.status(500).json({ message: "Error interno al cambiar la contraseña", error: error.message });
     }
 };

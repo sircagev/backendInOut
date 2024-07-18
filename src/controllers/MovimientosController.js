@@ -93,7 +93,6 @@ export const ListarDetallesMovimiento = async (req, res) => {
                     `;
         //Ejecutar la consulta
         const [result] = await pool.query(sql, [id]);
-        console.log(result)
         //Revisar que llego información y ejecutar manejo de errores
         if (result.length > 0) {
             return res.status(200).json({ message: "Movimientos listados", datos: result });
@@ -127,7 +126,6 @@ export const RegistrarMovimientoPrestamo = async (req, res) => {
         for (const detalle of detalles) {
             //Traer informacion de los detalles
             const { fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones } = detalle;
-            console.log(detalle)
             //Insertar de a un detalle
             const detalleSql = `INSERT INTO detalle_movimiento (fk_movimiento, fk_elemento, estado, fecha_vencimiento, cantidad, Usuario_recibe, Usuario_entrega, Observaciones) 
                                     VALUES (?,?,?,?,?,?,?,?)`;
@@ -151,7 +149,6 @@ export const RegistrarMovimientoIngreso = async (req, res) => {
         let { usuario_solicitud, fk_movimiento, Estado, detalles } = req.body;
         //Iniciar un transaccion en Sql
         await pool.query("START TRANSACTION");
-        console.log(req.body)
         //Crear un Nuevo Movimiento de tipo Prestamo
         const sqlMovimientoIngreso = `INSERT INTO movimiento (usuario_solicitud, fk_movimiento, Estado) 
                                     VALUES (?,?,?)`;
@@ -239,14 +236,12 @@ export const ActualizarDetalleMovimiento = async (req, res) => {
         // Obtener el detalle original para conocer la cantidad y el elemento antes de la actualización
         const sqlDetalleOriginal = `SELECT codigo_detalle, cantidad, fk_elemento, fk_movimiento FROM detalle_movimiento WHERE codigo_detalle = ?;`;
         const [rowsDetalleOriginal] = await pool.query(sqlDetalleOriginal, [id]);
-        console.log(rowsDetalleOriginal)
         if (rowsDetalleOriginal.length === 0) {
             await pool.query("ROLLBACK");
             return res.status(404).json({ message: "Detalle no encontrado" });
         }
 
         const detalleOriginal = rowsDetalleOriginal[0];
-        console.log(detalleOriginal)
         const cantidadOriginal = detalleOriginal.cantidad;
         const fk_elemento = detalleOriginal.fk_elemento;
         const fk_movimiento = detalleOriginal.fk_movimiento;
@@ -764,11 +759,9 @@ export const registerOutgoingMovement = async (req, res) => {
         let detallesInfo = [];
 
         for (const detail of details) {
-            const { element_id, quantity: detailquantity, remarks } = detail;
+            const { element_id, quantity: detailquantity, remarks, warehouseLocation_id } = detail;
 
-            console.log(detailquantity)
-
-            if (!element_id || !detailquantity) {
+            if (!element_id || !detailquantity || !warehouseLocation_id) {
                 await pool.query("ROLLBACK");
                 return res.status(400).json({
                     error: true,
@@ -793,15 +786,33 @@ export const registerOutgoingMovement = async (req, res) => {
                 })
             }
 
-            //Validar cuantos lotes existen y de cual se puede sacar o sacar de varios
-            const sqlBatchStock = `SELECT batch_id, quantity
-                                    FROM batches
-                                    WHERE element_id = ? 
-                                        AND quantity > 0
-                                        AND status = '1'
-                                    ORDER BY created_at ASC;`;
+            //Validar cuantos lotes existen en la ubicación solicitada y de cual se puede sacar o sacar de varios
+            const sqlBatchStock = `SELECT b.batch_id, b.quantity
+                                    FROM batches AS b
+                                    JOIN batch_location_infos AS bli ON b.batch_id = bli.batch_id
+                                    WHERE b.element_id = ?
+                                        AND b.quantity > 0
+                                        AND b.status = '1'
+                                        AND bli.quantity > 0
+                                        AND bli.warehouseLocation_id = ?
+                                    ORDER BY b.created_at DESC;`;
+            const dataBatchStock = [element_id, warehouseLocation_id];
+            const [resultBatchStock] = await pool.query(sqlBatchStock, dataBatchStock);
 
-            const [resultBatchStock] = await pool.query(sqlBatchStock, dataStockElement);
+            let stockInLocation = 0;
+
+            for (const st of resultBatchStock) {
+                const { quantity: stQuantity } = st;
+                stockInLocation += stQuantity;
+            }
+
+            if (stockInLocation < detailquantity) {
+                await pool.query('ROLLBACK')
+                return res.status(409).json({
+                    error: true,
+                    message: `No hay suficientes ${element.name}s en stock en la ubicacion especificada`
+                })
+            }
 
             let remainingQuantity = detailquantity;
             let quantityused2 = 0;
@@ -815,9 +826,10 @@ export const registerOutgoingMovement = async (req, res) => {
 
                 let quantityToUse = Math.min(remainingQuantity, bachtQuantity);
 
-                const sqlBatchLocations = `SELECT * FROM batch_location_infos WHERE batch_id = ?;`;
-                const dataBatchLocations = [batch_id];
+                const sqlBatchLocations = `SELECT * FROM batch_location_infos WHERE batch_id = ? AND warehouseLocation_id = ?;`;
+                const dataBatchLocations = [batch_id, warehouseLocation_id];
                 const [resultBatchLocations] = await pool.query(sqlBatchLocations, dataBatchLocations);
+
 
                 let quantityUsed = 0;
 
@@ -831,7 +843,6 @@ export const registerOutgoingMovement = async (req, res) => {
 
                     // Determinar cuánto tomar de esta ubicación específica
                     const quantityFromLocation = Math.min(quantityToUse, locationQuantity);
-                    console.log(quantityFromLocation)
 
                     // Actualizar la cantidad en la ubicación específica
                     const updatedQuantity = locationQuantity - quantityFromLocation;
@@ -1233,7 +1244,7 @@ export const updateLoganStatus = async (req, res) => {
 
             if (user.role_id == 1 || user.role_id == 2) {
                 //Revisar detalles por si se quiere cancelar en la ventana reservas
-                
+
 
                 //Actualizar a en revision
 
@@ -1469,20 +1480,21 @@ export const updateLoganStatus = async (req, res) => {
                                             movement_details 
                                         SET 
                                             loanStatus_id = ?,
-                                            remarks = ? 
+                                            remarks = ?,
+                                            user_receiving = ?
                                         WHERE 
                                             movement_id = ? 
                                             AND loanStatus_id =?
                                             AND movementDetail_id = ?;`;
-                    const dataDetails = [5,(remarks ? remarks : ''), id, 3, movementDetail_id];
+                    const dataDetails = [5, (remarks ? remarks : ''), user_returning, id, 3, movementDetail_id];
                     const [resultDetails] = await pool.query(sqlDetails, dataDetails);
                 }
 
                 //Actualizar estado del movimiento
                 const sqlUpdateMovementStatus = `UPDATE movements 
-                                                        SET movementLoan_status = ?, user_manager = ?, updated_at = CURRENT_TIMESTAMP
+                                                        SET movementLoan_status = ?, user_manager = ?, user_receiving = ?, updated_at = CURRENT_TIMESTAMP
                                                     WHERE movement_id = ? AND movementLoan_status  = ?;`;
-                const dataUpdateMovementStatus = [5, user.user_id, id, 3];
+                const dataUpdateMovementStatus = [5, user.user_id, user_returning, id, 3];
                 const [resultUpdateMovementStatus] = await pool.query(sqlUpdateMovementStatus, dataUpdateMovementStatus);
             }
 
@@ -1606,7 +1618,6 @@ export const updateLoganStatus = async (req, res) => {
                     const [result] = await pool.query(sqlMovementDetail, dataMovementDetail);
 
                     const movementDetail = result[0];
-                    console.log(movementDetail)
 
                     if (movementDetail.loanStatus_id == 5) {
                         const updateDetail = `UPDATE movement_details 
