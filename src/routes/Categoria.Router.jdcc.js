@@ -4,6 +4,8 @@ import { RegistrarCategoria, ListarCategoria, BuscarCategoria, ActualizarCategor
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar', RegistrarCategoria);
 route.get('/listar', ListarCategoria);
 route.get('/buscar/:id', validarToken, BuscarCategoria);

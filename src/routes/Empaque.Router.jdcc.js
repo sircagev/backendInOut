@@ -4,6 +4,8 @@ import { RegistrarEmpaque, ListarEmpaque, BuscarEmpaque, ActualizarEmpaque, Desa
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar', RegistrarEmpaque);
 route.get('/listar', ListarEmpaque);
 route.get('/buscar/:id', validarToken, BuscarEmpaque);

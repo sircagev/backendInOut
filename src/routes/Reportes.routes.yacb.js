@@ -20,8 +20,11 @@ import {
   BarOfConsumables,
   PieOfConsumables,
 } from "../controllers/Reportes.Controller.yacb.js";
+import { validarToken } from "../controllers/validator.controller.js";
 
 const route = Router();
+
+route.use(validarToken);
 
 route.get("/solicitudes", ReportOfApplications);
 route.get("/prestamosactivos", CarryOverActiveLoans);
