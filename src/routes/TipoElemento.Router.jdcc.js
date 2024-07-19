@@ -4,6 +4,8 @@ import { RegistrarTipo, ListarTipo, BuscarTipo, ActualizarTipo, EliminarTipo, De
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar', RegistrarTipo);
 route.get('/listar', ListarTipo);
 route.get('/buscar/:id', validarToken, BuscarTipo);
