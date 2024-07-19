@@ -795,7 +795,7 @@ export const registerOutgoingMovement = async (req, res) => {
                                         AND b.status = '1'
                                         AND bli.quantity > 0
                                         AND bli.warehouseLocation_id = ?
-                                    ORDER BY b.created_at DESC;`;
+                                    ORDER BY b.created_at ASC;`;
             const dataBatchStock = [element_id, warehouseLocation_id];
             const [resultBatchStock] = await pool.query(sqlBatchStock, dataBatchStock);
 

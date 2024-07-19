@@ -91,7 +91,7 @@ export const ReportingOfExpiredItems = async (req, res) => {
                       OR b.expiration BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY))
                   AND bl.quantity >= 1
               ORDER BY
-                  b.expiration DESC;
+                  b.expiration ASC;
               `;
     const [result] = await pool.query(sql);
 
