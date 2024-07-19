@@ -230,12 +230,11 @@ export const CarryOverOfLoansDue = async (req, res) => {
       LEFT JOIN 
           positions p ON u.position_id = p.position_id
       WHERE 
-          m.estimated_return < CURDATE()
+          m.estimated_return < CURDATE() AND m.movementLoan_status = 5
       GROUP BY 
           u.name, u.lastname, u.phone, md.remarks, m.estimated_return, m.created_at, p.name, u.course_id, m.movement_id
       ORDER BY 
           m.movement_id;
-
       `;
 
     const [result] = await pool.query(sql);
@@ -551,7 +550,7 @@ export const LoansDueModal = async (req, res) => {
         LEFT JOIN 
           elements e ON md.element_id = e.element_id
         WHERE 
-          m.estimated_return < CURDATE()
+          m.estimated_return < CURDATE() AND m.movementLoan_status = 5
         GROUP BY
           m.movement_id;
       `;
@@ -682,37 +681,33 @@ export const CarryOverActiveLoansModal = async (req, res) => {
 export const PieOfConsumables = async (req, res) => {
   try {
     const sql = `
-          SELECT 
-              element_name AS name,
-              total_quantity,
-              ROUND(
-                  (total_quantity / 
-                      (SELECT SUM(md.quantity) 
-                      FROM movement_details md 
-                      JOIN elements e ON md.element_id = e.element_id 
-                      WHERE e.elementType_id = '2')
-                  ) * 100, 
-                  2
-              ) AS percentage
-          FROM (
-              SELECT 
-                  e.name AS element_name,
-                  SUM(md.quantity) AS total_quantity
-              FROM 
-                  movement_details md
-              JOIN 
-                  elements e ON md.element_id = e.element_id
-              WHERE 
-                  e.elementType_id = '1'
-              GROUP BY 
-                  e.name
-              ORDER BY 
-                  total_quantity DESC
-              LIMIT 5
-          ) AS subquery
-          ORDER BY 
-              total_quantity DESC;
-          `;
+            SELECT 
+                e.name AS name,
+                ROUND(SUM(md.quantity) / total_movements.total_quantity * 100, 2) AS percentage
+            FROM 
+                movements m
+            JOIN 
+                movement_details md ON m.movement_id = md.movement_id
+            JOIN 
+                elements e ON md.element_id = e.element_id
+            JOIN (
+                SELECT 
+                    SUM(md.quantity) AS total_quantity
+                FROM 
+                    movements m
+                JOIN 
+                    movement_details md ON m.movement_id = md.movement_id
+                WHERE 
+                    m.movementType_id = '2'
+            ) AS total_movements
+            WHERE 
+                m.movementType_id = '2'
+            GROUP BY 
+                e.name, total_movements.total_quantity
+            ORDER BY 
+                Percentage DESC
+            LIMIT 5;
+      `;
 
     const [result] = await pool.query(sql);
 
@@ -730,8 +725,8 @@ export const PieOfConsumables = async (req, res) => {
   }
 };
 
-//Consumibles Bar
-export const BarOfLoans = async (req, res) => {
+// Cosumibles Bar
+export const  BarOfConsumables = async (req, res) => {
   try {
     const sql = `
           SELECT 
@@ -764,56 +759,8 @@ export const BarOfLoans = async (req, res) => {
   }
 };
 
-//Préstamos Pie
-export const PieOfLoans = async (req, res) => {
-  try {
-    const sql = `
-            SELECT 
-                e.name AS name,
-                ROUND(SUM(md.quantity) / total_movements.total_quantity * 100, 2) AS percentage
-            FROM 
-                movements m
-            JOIN 
-                movement_details md ON m.movement_id = md.movement_id
-            JOIN 
-                elements e ON md.element_id = e.element_id
-            JOIN (
-                SELECT 
-                    SUM(md.quantity) AS total_quantity
-                FROM 
-                    movements m
-                JOIN 
-                    movement_details md ON m.movement_id = md.movement_id
-                WHERE 
-                    m.movementType_id = '4'
-            ) AS total_movements
-            WHERE 
-                m.movementType_id = '4'
-            GROUP BY 
-                e.name, total_movements.total_quantity
-            ORDER BY 
-                Percentage DESC
-            LIMIT 5;
-          `;
-
-    const [result] = await pool.query(sql);
-
-    if (result.length > 0) {
-      return res
-        .status(200)
-        .json({ message: "Pie of Consumables", datos: result });
-    } else {
-      return res.status(200).json({
-        message: "No data were found to generate the report",
-      });
-    }
-  } catch (error) {
-    return res.status(500).json({ message: error });
-  }
-};
-
 //Préstamos Bar
-export const BarOfConsumables = async (req, res) => {
+export const BarOfLoans = async (req, res) => {
   try {
     const sql = `
           SELECT 
@@ -846,6 +793,62 @@ export const BarOfConsumables = async (req, res) => {
     return res.status(500).json({ message: error });
   }
 };
+
+//Préstamos Pie
+export const PieOfLoans = async (req, res) => {
+  try {
+    const sql = `
+WITH RankedElements AS (
+    SELECT
+        e.name,
+        SUM(md.quantity) AS total_quantity
+    FROM
+        movements m
+    JOIN
+        movement_details md ON m.movement_id = md.movement_id
+    JOIN
+        elements e ON md.element_id = e.element_id
+    WHERE
+        m.movementType_id = 4
+    GROUP BY
+        e.name
+    ORDER BY
+        total_quantity DESC
+    LIMIT 5
+),
+TotalQuantity AS (
+    SELECT
+        SUM(total_quantity) AS total_sum
+    FROM
+        RankedElements
+)
+SELECT
+    re.name,
+    re.total_quantity AS total,
+    ROUND((re.total_quantity / tq.total_sum) * 100, 2) AS percentage
+FROM
+    RankedElements re
+JOIN
+    TotalQuantity tq
+
+          `;
+
+    const [result] = await pool.query(sql);
+
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Pie of Consumables", datos: result });
+    } else {
+      return res.status(200).json({
+        message: "No data were found to generate the report",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error });
+  }
+};
+
 
 //Movimientos Pie-Bar
 export const PieOfMovements = async (req, res) => {
