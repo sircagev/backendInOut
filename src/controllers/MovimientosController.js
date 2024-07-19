@@ -595,7 +595,7 @@ export const registerIncomingMovement = async (req, res) => {
         const { user_application, details } = req.body
         const user = req.user;
 
-        const isAdmin = user.role_id === 1;
+        const isAdmin = user.role_id === 1 || user.role_id === 2;
 
         if (!isAdmin) {
             return res.status(403).json({
@@ -728,7 +728,7 @@ export const registerOutgoingMovement = async (req, res) => {
         const { user_application, details } = req.body
         const user = req.user;
 
-        const isAdmin = user.role_id === 1;
+        const isAdmin = user.role_id === 1 || user.role_id === 2;
 
         if (!isAdmin) {
             return res.status(403).json({
