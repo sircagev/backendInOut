@@ -4,6 +4,8 @@ import { RegistrarUbicacion, ListarUbicacion, BuscarUbicacion, ActualizarUbicaci
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar', RegistrarUbicacion);
 route.get('/listar', ListarUbicacion);
 route.get('/buscar/:id', validarToken, BuscarUbicacion);

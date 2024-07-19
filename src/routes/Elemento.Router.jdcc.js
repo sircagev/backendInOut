@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { validarToken } from "../controllers/validator.controller.js";
-import { RegistrarElemento ,AñadirStock, ListarElemetos, BuscarElemento, ActualizarElemento, EliminarElemento, DesactivarElementos} from "../controllers/Elemento.controller.jdcc.js";
+import { RegistrarElemento, AñadirStock, ListarElemetos, BuscarElemento, ActualizarElemento, EliminarElemento, DesactivarElementos } from "../controllers/Elemento.controller.jdcc.js";
 
 const route = Router();
+
+route.use(validarToken);
 
 route.put('/aniadir/:id', validarToken, AñadirStock);
 route.get('/listar', ListarElemetos);

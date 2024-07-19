@@ -4,6 +4,8 @@ import { RegistrarMedida, ListarMedida, Buscarmedida, ActualizarMedida, Desactiv
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar', RegistrarMedida);
 route.get('/listar', ListarMedida);
 route.get('/buscar/:id', validarToken, Buscarmedida);

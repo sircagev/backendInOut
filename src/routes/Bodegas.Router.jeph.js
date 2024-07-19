@@ -4,6 +4,8 @@ import { RegistrarBodega, listarBodegas, BuscarBodega, ActualizarBodega, Desacti
 
 const route = Router();
 
+route.use(validarToken);
+
 route.post('/registrar',  RegistrarBodega);
 route.get('/listar', listarBodegas);
 route.get('/buscar/:id', validarToken, BuscarBodega)
