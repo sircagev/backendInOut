@@ -14,7 +14,8 @@ export const ReportOfElements = async (req, res) => {
             wl.name AS wlocation,
             bli.quantity AS cant,
             IFNULL(SUM(CASE WHEN m.movementType_id = 4 AND m.movementLoan_status IN (1, 2, 3, 5) THEN md.quantity ELSE 0 END), 0) AS quantity,
-            IFNULL(SUM(CASE WHEN m.movementType_id = 4 AND m.movementLoan_status IN (1, 2, 3, 5) THEN md.quantity ELSE 0 END), 0) + e.stock AS total
+            IFNULL(SUM(CASE WHEN m.movementType_id = 4 AND m.movementLoan_status IN (1, 2, 3, 5) THEN md.quantity ELSE 0 END), 0) + e.stock AS total,
+            et.name AS type
         FROM
             elements e
         LEFT JOIN
@@ -39,8 +40,10 @@ export const ReportOfElements = async (req, res) => {
             movement_details md ON md.element_id = e.element_id
         LEFT JOIN
             movements m ON md.movement_id = m.movement_id
+        LEFT JOIN
+            element_types et ON e.elementType_id = et.elementType_id
         GROUP BY
-            e.element_id, e.name, e.stock, e.created_at, c.name, w.name, wl.name, bli.quantity;
+            e.element_id, e.name, e.stock, e.created_at, c.name, w.name, wl.name, bli.quantity, et.name;
         `;
 
     const [result] = await pool.query(sql);
