@@ -21,7 +21,7 @@ const tokenPassword = async (peticion, respuesta) => {
             service: "gmail",
             auth: {
                 user: "proyectoformativoinout@gmail.com",
-                pass: "htpe golx opwo gqge" 
+                pass: "hgks jsru rjyb eeqv" 
             },
             tls: {
                 rejectUnauthorized: false
